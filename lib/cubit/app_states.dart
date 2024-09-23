@@ -1,5 +1,5 @@
-abstract class Appstates {}
+abstract class AppStates {}
 
-class AppInitState extends Appstates {}
+class AppInitState extends AppStates {}
 
-class ChangeScreenState extends Appstates {}
+class ChangeScreenState extends AppStates {}

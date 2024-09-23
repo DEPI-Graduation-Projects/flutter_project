@@ -15,7 +15,7 @@ class HomeLayout extends StatefulWidget {
 class _HomeLayoutState extends State<HomeLayout> {
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AppCubit, Appstates>(
+    return BlocConsumer<AppCubit, AppStates>(
       listener: (context, state) {},
       builder: (context, state) => Scaffold(
         appBar: AppBar(

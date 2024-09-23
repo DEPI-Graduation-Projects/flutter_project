@@ -6,14 +6,14 @@ import 'package:flutter_project/screens/user/user_screen/user_screen.dart';
 
 import 'app_states.dart';
 
-class AppCubit extends Cubit<Appstates> {
+class AppCubit extends Cubit<AppStates> {
   AppCubit() : super(AppInitState());
   static AppCubit get(BuildContext context) => BlocProvider.of(context);
 
   final pages = [
     const ChatsScreen(),
     const UserScreen(),
-    const StoriesScreen()
+     StoriesScreen()
   ];
   int selectedIndex = 0;
   void changeScreen(index) {
