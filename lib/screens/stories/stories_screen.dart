@@ -16,23 +16,27 @@ class StoriesScreen extends StatelessWidget {
   String? get currentUserId => FirebaseAuth.instance.currentUser?.uid;
 
   Future<void> _addStory(ImageSource source) async {
-    if (currentUserId == null) {
-      print('User is not authenticated');
-      return;
-    }
+
+    // if (currentUserId == null) {
+    //   print('User is not authenticated');
+    //   return;
+    // }
 
     final ImagePicker imagePicker = ImagePicker();
     final XFile? img = await imagePicker.pickImage(source: source);
 
     if (img != null) {
       File file = File(img.path);
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference ref = _storage.ref().child('stories/$fileName');
+
+      DocumentReference docRef = _fireStore.collection('stories').doc();
+
+      Reference ref = _storage.ref().child('stories/${docRef.id}');
 
       await ref.putFile(file);
       String getURL = await ref.getDownloadURL();
 
-      await _fireStore.collection('stories').add({
+      await docRef.set({
+        'id' : docRef.id,
         'userId': currentUserId,
         'imgURL': getURL,
         'timeStamp': FieldValue.serverTimestamp()
@@ -96,9 +100,9 @@ class StoriesScreen extends StatelessWidget {
                 Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
                 return UserStory(
                     id: doc.id,
-                    userId: data['userId'],
-                    timeStamp: data['timeStamp'],
-                    imgURL: data['imgURL']
+                    userId: data['userId'] as String? ?? '',
+                    timeStamp: (data['timeStamp'] as Timestamp?)!.toDate(),
+                    imgURL: data['imgURL'] as String? ?? ''
                 );
               }).toList();
             }
