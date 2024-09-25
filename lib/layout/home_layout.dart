@@ -32,12 +32,16 @@ class _HomeLayoutState extends State<HomeLayout> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 70,
+                width: 75,
                 height: double.infinity,
                 padding: const EdgeInsetsDirectional.only(end: 20, start: 5),
                 decoration: const BoxDecoration(
-                    border: BorderDirectional(
-                        end: BorderSide(width: 1, color: Colors.black))),
+                    // border: BorderDirectional(
+                    //     end: BorderSide(
+                    //         style: BorderStyle.none, color: Colors.black)
+                    //         )
+
+                    ),
                 child: Column(
                   children: [
                     SizedBox(
@@ -73,9 +77,23 @@ class _HomeLayoutState extends State<HomeLayout> {
                 ),
               ),
               Expanded(
-                child: Padding(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 9, // Expands the shadow
+                        blurRadius: 2, // Smoothens the shadow
+                        offset: const Offset(
+                            5, 6), // Controls the shadow's position
+                      )
+                    ],
+                    border: Border.all(color: Colors.yellow.shade900, width: 3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                   child: widget.cubit.pages[widget.cubit.selectedIndex],
                 ),
               ),
