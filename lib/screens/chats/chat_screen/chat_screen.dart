@@ -6,16 +6,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/Components/components.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
+import 'package:flutter_project/models/chat_model.dart';
 import 'package:flutter_project/models/message_model.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
-  final String chatId;
+  final ChatModel chat;
   final AppCubit cubb;
   const ChatScreen({
-    required this.chatId,
+    required this.chat,
     required this.cubb,
     super.key,
   });
@@ -26,7 +27,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   TextEditingController chatController = TextEditingController();
-
+  int messagesIndex = -1;
   String formatDate(String dateTimeString) {
     DateTime dateTime = DateTime.parse(dateTimeString);
     return DateFormat('yyyy-MM-dd', 'en').format(dateTime);
@@ -45,13 +46,24 @@ class _ChatScreenState extends State<ChatScreen> {
     initializeDateFormatting('en', null).then((_) {
       // Your date formatting code will work fine now.
     });
-    widget.cubb.getChat(userId: widget.cubb.userId, chatId: widget.chatId);
+    widget.cubb.getChat(userId: widget.cubb.userId, chatId: widget.chat.chatId);
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AppCubit, AppStates>(
-      listener: (context, state) {},
+      listener: (context, state) {
+        if (state is DeleteMessageSuccessState) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Message Deleted Successfully")));
+          Navigator.pop(context);
+        }
+        if (state is CopyTextSuccessState) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Message Copied to ClipBoard")));
+          Navigator.pop(context);
+        }
+      },
       builder: (context, state) {
         return Scaffold(
           body: SafeArea(
@@ -76,9 +88,62 @@ class _ChatScreenState extends State<ChatScreen> {
                             // color: Components.setTextColor(cubb.isDarkMode),
                           ),
                         ),
-                        const Text(
-                          "My chat",
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: Stack(
+                            children: [
+                              const CircleAvatar(
+                                child: Icon(Icons.person),
+                              ),
+                              Positioned(
+                                  right: 6,
+                                  bottom: 8,
+                                  child: widget.cubb.currentUser != null
+                                      ? CircleAvatar(
+                                          radius: 8,
+                                          backgroundColor: Colors.amber,
+                                          child: CircleAvatar(
+                                            radius: 7,
+                                            backgroundColor:
+                                                widget.cubb.currentUser!.status
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                          ),
+                                        )
+                                      : const SizedBox())
+                            ],
+                          ),
                         ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        state is GetUserDataLoadingState
+                            ? const Text(
+                                "Loading...",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                              )
+                            : Column(
+                                children: [
+                                  Text(
+                                    widget.cubb.currentUser != null
+                                        ? widget.cubb.currentUser!.name
+                                        : "Loading...",
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.only(top: 5),
+                                    child: Text(widget.cubb.currentUser != null
+                                        ? widget.cubb.currentUser!.status
+                                            ? "online"
+                                            : "offline"
+                                        : ""),
+                                  )
+                                ],
+                              ),
                         const Spacer(),
                         TextButton(
                             onPressed: () {
@@ -116,9 +181,13 @@ class _ChatScreenState extends State<ChatScreen> {
                               ),
                             ),
                             ...messages.map((message) {
-                              return message.id == "22010237"
-                                  ? _buildMyMessage(message, context, false)
-                                  : _buildOtherMessage(message, context, false);
+                              return _buildMessage(
+                                  message: message,
+                                  context: context,
+                                  isDarkMode: false,
+                                  cubb: widget.cubb,
+                                  chatId: widget.chat.chatId,
+                                  isMe: message.senderId == "22010237");
                             }),
                           ],
                         );
@@ -209,7 +278,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       imageUrl = await cubb.uploadChatimage(file: cubb.img);
                     }
                     await cubb.addMessage(
-                        chatId: widget.chatId,
+                        chatId: widget.chat.chatId,
                         userId: userId,
                         type: imageUrl.isNotEmpty,
                         imagaeUrl: imageUrl,
@@ -259,134 +328,169 @@ class _ChatScreenState extends State<ChatScreen> {
       DateTime dateB = DateTime.parse(b['date']);
       return dateB.compareTo(dateA);
     });
-
+    print(groupedMessagesList);
     return groupedMessagesList;
   }
 
-  Widget _buildOtherMessage(
-    MessageModel message,
-    context,
-    bool isDarkMode,
-  ) {
+  // Widget _buildOtherMessage(
+  //   MessageModel message,
+  //   context,
+  //   bool isDarkMode,
+  // ) {
+  //   String formattedTime = formatTime(message.time);
+
+  //   return Align(
+  //     alignment: AlignmentDirectional.centerStart,
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(10.0),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Container(
+  //             decoration: const BoxDecoration(
+  //               borderRadius: BorderRadiusDirectional.only(
+  //                 topStart: Radius.circular(16.0),
+  //                 topEnd: Radius.circular(16.0),
+  //                 bottomEnd: Radius.circular(16.0),
+  //               ),
+  //             ),
+  //             child: message.type
+  //                 ? Padding(
+  //                     padding: const EdgeInsets.all(7.0),
+  //                     child: InkWell(
+  //                       onTap: () {
+  //                         FullScreenImageViewer.showFullImage(
+  //                             context, message.imagaeUrl);
+  //                       },
+  //                       child: ClipRRect(
+  //                         borderRadius: const BorderRadiusDirectional.only(
+  //                           topStart: Radius.circular(16.0),
+  //                           topEnd: Radius.circular(16.0),
+  //                           bottomEnd: Radius.circular(16.0),
+  //                         ),
+  //                         child: CachedNetworkImage(
+  //                           imageUrl: message.imagaeUrl!,
+  //                           height: 200,
+  //                           width: 200,
+  //                           fit: BoxFit.cover,
+  //                           placeholder: (context, url) => const Center(
+  //                               child: CircularProgressIndicator()),
+  //                           errorWidget: (context, url, error) =>
+  //                               const Icon(Icons.error),
+  //                         ),
+  //                       ),
+  //                     ),
+  //                   )
+  //                 : Padding(
+  //                     padding: const EdgeInsets.symmetric(
+  //                       horizontal: 8,
+  //                       vertical: 8,
+  //                     ),
+  //                     child: Text(
+  //                       message.message!,
+  //                     ),
+  //                   ),
+  //           ),
+  //           Text(
+  //             formattedTime,
+  //           )
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  Widget _buildMessage(
+      {required MessageModel message,
+      required context,
+      required bool isDarkMode,
+      required bool isMe,
+      required chatId,
+      required AppCubit cubb}) {
     String formattedTime = formatTime(message.time);
 
     return Align(
-      alignment: AlignmentDirectional.centerStart,
+      alignment: isMe
+          ? AlignmentDirectional.centerEnd
+          : AlignmentDirectional.centerStart,
       child: Padding(
         padding: const EdgeInsets.all(10.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            Container(
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadiusDirectional.only(
-                  topStart: Radius.circular(16.0),
-                  topEnd: Radius.circular(16.0),
-                  bottomEnd: Radius.circular(16.0),
-                ),
-              ),
-              child: message.type
-                  ? Padding(
-                      padding: const EdgeInsets.all(7.0),
-                      child: InkWell(
-                        onTap: () {
-                          FullScreenImageViewer.showFullImage(
-                              context, message.imagaeUrl);
-                        },
-                        child: ClipRRect(
-                          borderRadius: const BorderRadiusDirectional.only(
-                            topStart: Radius.circular(16.0),
-                            topEnd: Radius.circular(16.0),
-                            bottomEnd: Radius.circular(16.0),
+            GestureDetector(
+              onLongPress: () {
+                showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () {
+                                  cubb.deleteChatMessage(
+                                      chatId: chatId, messageId: message.id);
+                                },
+                                label: const Text("Delete"),
+                                icon: const Icon(Icons.delete),
+                              ),
+                              !message.type
+                                  ? TextButton.icon(
+                                      onPressed: () {
+                                        cubb.copyToClipboard(message.message!);
+                                      },
+                                      label: const Text("Copy"),
+                                      icon: const Icon(Icons.copy),
+                                    )
+                                  : const SizedBox()
+                            ],
                           ),
-                          child: CachedNetworkImage(
-                            imageUrl: message.imagaeUrl!,
-                            height: 200,
-                            width: 200,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const Center(
-                                child: CircularProgressIndicator()),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.error),
+                        ));
+              },
+              child: Container(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadiusDirectional.only(
+                    topStart: Radius.circular(16.0),
+                    topEnd: Radius.circular(16.0),
+                    bottomStart: Radius.circular(16.0),
+                  ),
+                ),
+                child: message.type
+                    ? Padding(
+                        padding: const EdgeInsets.all(7.0),
+                        child: InkWell(
+                          onTap: () => FullScreenImageViewer.showFullImage(
+                              context, message.imagaeUrl),
+                          child: ClipRRect(
+                            borderRadius: const BorderRadiusDirectional.only(
+                              topStart: Radius.circular(16.0),
+                              topEnd: Radius.circular(16.0),
+                              bottomStart: Radius.circular(16.0),
+                            ),
+                            child: CachedNetworkImage(
+                              imageUrl: message.imagaeUrl!,
+                              height: 200,
+                              width: 200,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator()),
+                              errorWidget: (context, url, error) =>
+                                  const Icon(Icons.error),
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
-                      ),
-                      child: Text(
-                        message.message!,
-                      ),
-                    ),
-            ),
-            Text(
-              formattedTime,
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMyMessage(
-    MessageModel message,
-    context,
-    bool isDarkMode,
-  ) {
-    String formattedTime = formatTime(message.time);
-
-    return Align(
-      alignment: AlignmentDirectional.centerEnd,
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadiusDirectional.only(
-                  topStart: Radius.circular(16.0),
-                  topEnd: Radius.circular(16.0),
-                  bottomStart: Radius.circular(16.0),
-                ),
-              ),
-              child: message.type
-                  ? Padding(
-                      padding: const EdgeInsets.all(7.0),
-                      child: InkWell(
-                        onTap: () => FullScreenImageViewer.showFullImage(
-                            context, message.imagaeUrl),
-                        child: ClipRRect(
-                          borderRadius: const BorderRadiusDirectional.only(
-                            topStart: Radius.circular(16.0),
-                            topEnd: Radius.circular(16.0),
-                            bottomStart: Radius.circular(16.0),
-                          ),
-                          child: CachedNetworkImage(
-                            imageUrl: message.imagaeUrl!,
-                            height: 200,
-                            width: 200,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const Center(
-                                child: CircularProgressIndicator()),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.error),
-                          ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        child: Text(
+                          message.message!,
                         ),
                       ),
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
-                      ),
-                      child: Text(
-                        message.message!,
-                      ),
-                    ),
+              ),
             ),
             Text(
               formattedTime,

@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
           AppCubit cubit = AppCubit.get(context);
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: HomeLayout(cubit: cubit),
+            home: HomeLayout(cubb: cubit),
           );
         },
       ),

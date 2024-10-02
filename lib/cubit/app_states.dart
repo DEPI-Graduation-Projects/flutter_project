@@ -32,8 +32,20 @@ class GetChatMessagesLoadingState extends AppStates {}
 
 class GetChatMessagesSuccessState extends AppStates {}
 
+class GetChatMessagesErrorState extends AppStates {}
+
 class DeleteChatSuccessState extends AppStates {}
 
 class TempDeleteState extends AppStates {}
 
 class SwapState extends AppStates {}
+
+class GetUserDataFailedState extends AppStates {}
+
+class GetUserDataLoadingState extends AppStates {}
+
+class GetUserDataSuccessState extends AppStates {}
+
+class DeleteMessageSuccessState extends AppStates {}
+
+class CopyTextSuccessState extends AppStates {}

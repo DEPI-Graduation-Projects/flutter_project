@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/models/chat_model.dart';
 import 'package:flutter_project/models/message_model.dart';
+import 'package:flutter_project/models/user_model.dart';
 import 'package:flutter_project/screens/chats/my_chats/my_chasts.dart';
 import 'package:flutter_project/screens/stories/stories_screen.dart';
 import 'package:flutter_project/screens/user/user_screen/user_screen.dart';
@@ -16,6 +18,46 @@ import 'app_states.dart';
 class AppCubit extends Cubit<AppStates> {
   AppCubit() : super(AppInitState());
   static AppCubit get(BuildContext context) => BlocProvider.of(context);
+
+///////////////////////
+  ///
+  final CollectionReference usersRef =
+      FirebaseFirestore.instance.collection('Users');
+
+  // Set the user's status to online
+  Future<void> setUserOnline(String userId) async {
+    await usersRef.doc(userId).update({
+      'status': true,
+    });
+  }
+
+  // Set the user's status to offline
+  Future<void> setUserOffline(String userId) async {
+    await usersRef.doc(userId).update({
+      'status': false,
+    });
+  }
+
+  /////////////
+  UserModel? currentUser;
+  Future<void> getUserData(String userId) {
+    try {
+      emit(GetUserDataLoadingState());
+      // Listen to real-time updates from Firestore
+      FirebaseFirestore.instance
+          .collection("Users")
+          .where('userId', isEqualTo: userId)
+          .snapshots()
+          .listen((users) {
+        currentUser = UserModel.fromJson(users.docs.first.data());
+        emit(GetUserDataSuccessState());
+      });
+    } catch (error) {
+      emit(GetUserDataFailedState());
+      print(error);
+    }
+    return Future(() => null);
+  }
 
   //////////////
   ///Change Screen (Navigation Bar)
@@ -85,16 +127,23 @@ class AppCubit extends Cubit<AppStates> {
       String? message,
       required bool type,
       String? imagaeUrl}) {
+    String id = FirebaseFirestore.instance
+        .collection('Chats')
+        .doc(chatId)
+        .collection("Messages")
+        .doc()
+        .id;
     emit(AddMessageLoadingState());
     FirebaseFirestore.instance
         .collection('Chats')
         .doc(chatId)
         .collection("Messages")
-        .doc()
+        .doc(id)
         .set({
       'message': message,
       'time': DateTime.now().toString(),
-      'id': userId,
+      'id': id,
+      'senderId': userId,
       "imagaeUrl": imagaeUrl,
       'type': type
     }).then((value) {
@@ -104,6 +153,29 @@ class AppCubit extends Cubit<AppStates> {
       debugPrint(error);
     });
     return Future(() => null);
+  }
+
+  ///////////////////
+  ///Delete Message
+  Future<void> deleteChatMessage({required chatId, required messageId}) {
+    FirebaseFirestore.instance
+        .collection("Chats")
+        .doc(chatId)
+        .collection("Messages")
+        .doc(messageId)
+        .delete()
+        .then((onValue) {});
+    emit(DeleteMessageSuccessState());
+
+    return Future(() => null);
+  }
+
+///////////
+////Copy Message
+  void copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text)).then((_) {
+      emit(CopyTextSuccessState());
+    });
   }
 
 ////////////////////////
@@ -156,6 +228,9 @@ class AppCubit extends Cubit<AppStates> {
           .toList()
           .reversed
           .toList();
+      messages.map((toElement) {
+        print(toElement.message);
+      });
       emit(GetChatMessagesSuccessState());
     });
   }

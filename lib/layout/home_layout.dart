@@ -5,14 +5,38 @@ import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
 
 class HomeLayout extends StatefulWidget {
-  final AppCubit cubit;
-  const HomeLayout({super.key, required this.cubit});
+  final AppCubit cubb;
+  const HomeLayout({super.key, required this.cubb});
 
   @override
   State<HomeLayout> createState() => _HomeLayoutState();
 }
 
-class _HomeLayoutState extends State<HomeLayout> {
+class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
+  final String userId = "22010237";
+  // bool isMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Set the user as online when the app starts
+    widget.cubb.setUserOnline(userId);
+
+    // Handle the disconnection case
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // Mark user as offline when the app goes to background
+      widget.cubb.setUserOffline(userId);
+    } else if (state == AppLifecycleState.resumed) {
+      // Mark user as online when the app is resumed
+      widget.cubb.setUserOnline(userId);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AppCubit, AppStates>(
@@ -49,30 +73,40 @@ class _HomeLayoutState extends State<HomeLayout> {
                     ),
                     SideNavigationBarItem(
                       fun: () {
-                        widget.cubit.changeScreen(0);
+                        widget.cubb.changeScreen(0);
                       },
                       icon: Icons.chat,
                       label: "Chats",
-                      isSelected: widget.cubit.selectedIndex == 0,
+                      isSelected: widget.cubb.selectedIndex == 0,
                     ),
                     const SizedBox(height: 15),
                     SideNavigationBarItem(
                       fun: () {
-                        widget.cubit.changeScreen(1);
+                        widget.cubb.changeScreen(1);
                       },
                       icon: Icons.person,
                       label: "Users",
-                      isSelected: widget.cubit.selectedIndex == 1,
+                      isSelected: widget.cubb.selectedIndex == 1,
                     ),
                     const SizedBox(height: 15),
                     SideNavigationBarItem(
                       fun: () {
-                        widget.cubit.changeScreen(2);
+                        widget.cubb.changeScreen(2);
                       },
                       icon: Icons.update,
                       label: "Stories",
-                      isSelected: widget.cubit.selectedIndex == 2,
+                      isSelected: widget.cubb.selectedIndex == 2,
                     ),
+                    const SizedBox(height: 15),
+                    // IconButton(
+                    //     onPressed: () {
+                    //       setState(() {
+                    //         userId = isMe ? "22010237" : "22010289";
+                    //         isMe = !isMe;
+                    //         print(userId);
+                    //       });
+                    //     },
+                    //     icon: const Icon(Icons.swap_calls))
                   ],
                 ),
               ),
@@ -94,7 +128,7 @@ class _HomeLayoutState extends State<HomeLayout> {
                   ),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  child: widget.cubit.pages[widget.cubit.selectedIndex],
+                  child: widget.cubb.pages[widget.cubb.selectedIndex],
                 ),
               ),
             ],
