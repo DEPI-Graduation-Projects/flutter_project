@@ -178,6 +178,45 @@ class AppCubit extends Cubit<AppStates> {
     });
   }
 
+////////////
+  ///Select message
+  void selectMessage(messageId) {
+    int index = messages.indexWhere((message) => message.id == messageId);
+
+    if (index != -1) {
+      // If the message is found, update its isSelected value
+      messages[index].isSelected =
+          !messages[index].isSelected; // Change to true or toggle if needed
+    } else {
+      print("Message with ID $messageId not found.");
+    }
+    emit(SelectMessageSuccesState());
+  }
+
+  ////////////
+  ////
+  Future<void> deleteSelectedMessages(
+      List<String> documentIds, String chatId) async {
+    WriteBatch batch = FirebaseFirestore.instance.batch();
+
+    for (String docId in documentIds) {
+      DocumentReference docRef = FirebaseFirestore.instance
+          .collection("Chats")
+          .doc(chatId)
+          .collection("Messages")
+          .doc(docId);
+      batch.delete(docRef);
+    }
+
+    try {
+      await batch.commit(); // Execute the batch delete operation
+      emit(DeleteSelectedMessagesState());
+      print("All documents deleted successfully.");
+    } catch (e) {
+      print("Error deleting documents: $e");
+    }
+  }
+
 ////////////////////////
   /// changing icon in the chat
   bool isTyping = false;
@@ -188,10 +227,11 @@ class AppCubit extends Cubit<AppStates> {
 
   /////////////////////
   /// create chat method for the first time
-  void createChat(
-      {required String userId,
-      required String receiverId,
-      required String message}) {
+  void createChat({
+    required String userId,
+    required String receiverId,
+    required String message,
+  }) {
     emit(CreateChatLoadingState());
     String id = FirebaseFirestore.instance.collection('Chats').doc().id;
     FirebaseFirestore.instance
@@ -210,10 +250,32 @@ class AppCubit extends Cubit<AppStates> {
     });
   }
 
+//////////////////
+  ///Update Chat Wallpaper
+  String currentWallpaper =
+      "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain";
+  void updateChatWallpaper({
+    required String chatId,
+    required String wallpaperUrl,
+  }) {
+    emit(UpdateChatWallpapperLoadingState());
+
+    Map<String, dynamic> newWallpaper = {chatId: wallpaperUrl};
+
+    FirebaseFirestore.instance.collection('Users').doc("22010237").update({
+      'chatWallpapers': FieldValue.arrayUnion([newWallpaper]),
+    }).then((onValue) {
+      currentWallpaper = wallpaperUrl;
+      emit(UpdateChatWallpapperSuccessState(chatWallpaperUrl: wallpaperUrl));
+    }).catchError((onError) {
+      emit(UpdateChatWallpapperFailedState());
+    });
+  }
+
 //////////////////////////////////
   /// get all chat messages
   List<MessageModel> messages = [];
-  void getChat({required String userId, required String chatId}) {
+  void getChatMessages({required String userId, required String chatId}) {
     emit(GetChatMessagesLoadingState());
     messages = [];
     FirebaseFirestore.instance

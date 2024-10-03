@@ -23,6 +23,7 @@ class _MyChastsState extends State<MyChasts> {
   void initState() {
     super.initState();
     final AppCubit cubb = AppCubit.get(context);
+    cubb.getUserData("22010237");
     cubb.getMyChats(userId: "22010237");
   }
 
@@ -157,12 +158,24 @@ class ChatItem extends StatelessWidget {
       direction: DismissDirection.endToStart,
       child: GestureDetector(
         onTap: () {
+          print('users chat wallpaper  ${cubb.currentUser!.chatWallpapers}');
+          print('chat id ${chat.chatId}');
+          print('chat id ${chat.chatId}');
+          for (var wallpapers in cubb.currentUser!.chatWallpapers) {
+            if (wallpapers.containsKey(chat.chatId)) {
+              cubb.currentWallpaper = wallpapers[chat.chatId];
+              print('chat current wallpaper ${cubb.currentWallpaper}');
+            }
+          }
           String userId = chat.usersIds.firstWhere((id) => id != "22010237");
           cubb.getUserData(userId).then((value) {
             Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ChatScreen(cubb: cubb, chat: chat),
+                  builder: (context) => ChatScreen(
+                    cubb: cubb,
+                    chat: chat,
+                  ),
                 ));
           });
         },

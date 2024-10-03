@@ -146,23 +146,26 @@ class FullScreenImageViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 32.0),
-            Expanded(
-              child: type
-                  ? PhotoView(
-                      imageProvider: NetworkImage(
-                        imageUrl!,
-                      ),
-                    )
-                  : Image.file(img!),
-            ),
-          ],
+    return BlocConsumer<AppCubit, AppStates>(
+      listener: (context, state) {},
+      builder: (context, state) => SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 32.0),
+              Expanded(
+                child: type
+                    ? PhotoView(
+                        imageProvider: NetworkImage(
+                          imageUrl!,
+                        ),
+                      )
+                    : Image.file(img!),
+              ),
+            ],
+          ),
         ),
       ),
     );

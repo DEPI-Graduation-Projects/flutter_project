@@ -2,7 +2,6 @@ class ChatModel {
   final String chatId;
   final List<dynamic> usersIds;
   final String lastMessage;
-
   ChatModel(
       {required this.chatId,
       required this.usersIds,
@@ -16,6 +15,10 @@ class ChatModel {
   }
 
   Map<String, dynamic> toMap() {
-    return {'chatId': chatId, 'usersIds': usersIds, 'lastMessage': lastMessage};
+    return {
+      'chatId': chatId,
+      'usersIds': usersIds,
+      'lastMessage': lastMessage,
+    };
   }
 }

@@ -49,3 +49,16 @@ class GetUserDataSuccessState extends AppStates {}
 class DeleteMessageSuccessState extends AppStates {}
 
 class CopyTextSuccessState extends AppStates {}
+
+class SelectMessageSuccesState extends AppStates {}
+
+class DeleteSelectedMessagesState extends AppStates {}
+
+class UpdateChatWallpapperLoadingState extends AppStates {}
+
+class UpdateChatWallpapperSuccessState extends AppStates {
+  String chatWallpaperUrl;
+  UpdateChatWallpapperSuccessState({required this.chatWallpaperUrl});
+}
+
+class UpdateChatWallpapperFailedState extends AppStates {}

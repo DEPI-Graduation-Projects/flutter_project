@@ -2,12 +2,22 @@ class UserModel {
   final String name;
   final String userId;
   final bool status;
+  final List<Map<String, dynamic>> chatWallpapers;
 
-  UserModel({required this.name, required this.status, required this.userId});
+  UserModel({
+    required this.name,
+    required this.status,
+    required this.userId,
+    required this.chatWallpapers,
+  });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-        name: json['name'], status: json['status'], userId: json['userId']);
+      name: json['name'],
+      status: json['status'],
+      userId: json['userId'],
+      chatWallpapers: List<Map<String, dynamic>>.from(json['chatWallpapers']),
+    );
   }
 
   Map<String, dynamic> toMap() {
@@ -15,6 +25,7 @@ class UserModel {
       'name': name,
       'userId': userId,
       'status': status,
+      'chatWallpapers': chatWallpapers,
     };
   }
 }

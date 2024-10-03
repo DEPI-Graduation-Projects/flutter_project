@@ -1,5 +1,7 @@
 // ignore_for_file: must_be_immutable
 
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -27,7 +29,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   TextEditingController chatController = TextEditingController();
-  int messagesIndex = -1;
+  List<String> messagesIds = [];
   String formatDate(String dateTimeString) {
     DateTime dateTime = DateTime.parse(dateTimeString);
     return DateFormat('yyyy-MM-dd', 'en').format(dateTime);
@@ -46,13 +48,20 @@ class _ChatScreenState extends State<ChatScreen> {
     initializeDateFormatting('en', null).then((_) {
       // Your date formatting code will work fine now.
     });
-    widget.cubb.getChat(userId: widget.cubb.userId, chatId: widget.chat.chatId);
+    widget.cubb.getChatMessages(
+        userId: widget.cubb.userId, chatId: widget.chat.chatId);
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AppCubit, AppStates>(
       listener: (context, state) {
+        if (state is UploadChatImageLoadingState) {
+          LoadingAlert.showLoadingDialogUntilState(
+              context: context, cubit: widget.cubb, targetState: state);
+        } else if (state is UpdateChatWallpapperSuccessState) {
+          Navigator.pop(context);
+        }
         if (state is DeleteMessageSuccessState) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Message Deleted Successfully")));
@@ -63,12 +72,30 @@ class _ChatScreenState extends State<ChatScreen> {
               const SnackBar(content: Text("Message Copied to ClipBoard")));
           Navigator.pop(context);
         }
+        if (state is DeleteSelectedMessagesState) {
+          setState(() {
+            messagesIds.clear();
+          });
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text("Messages Deleted")));
+        }
+        if (state is UpdateChatWallpapperSuccessState) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text("Wallpaper updated")));
+          Navigator.pop(context);
+        }
       },
       builder: (context, state) {
         return Scaffold(
           body: SafeArea(
             child: Container(
-              decoration: const BoxDecoration(),
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  fit: BoxFit.cover,
+                  image:
+                      CachedNetworkImageProvider(widget.cubb.currentWallpaper),
+                ),
+              ),
               child: Column(
                 children: [
                   Container(
@@ -145,15 +172,100 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ],
                               ),
                         const Spacer(),
-                        TextButton(
-                            onPressed: () {
+                        messagesIds.isNotEmpty
+                            ? Text('${messagesIds.length} selected ')
+                            : const SizedBox(),
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            // Handle the selected value here
+                            if (value == 'swap') {
                               setState(() {
                                 widget.cubb
                                     .changeUserId(widget.cubb.isMe, context);
                                 widget.cubb.isMe = !(widget.cubb.isMe);
                               });
-                            },
-                            child: const Text("Swap"))
+                              // Perform block action
+                            } else if (value == 'delete') {
+                              messagesIds.isNotEmpty
+                                  ? widget.cubb.deleteSelectedMessages(
+                                      messagesIds, widget.chat.chatId)
+                                  : null;
+                              // Perform delete action
+                            } else {
+                              final picker = ImagePicker();
+                              picker
+                                  .pickImage(source: ImageSource.gallery)
+                                  .then((value) {
+                                if (value != null) {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => Container(
+                                          height: double.infinity,
+                                          color: Colors.black,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.max,
+                                            children: [
+                                              Expanded(
+                                                child: FullScreenImageViewer(
+                                                    "", File(value.path),
+                                                    type: false),
+                                              ),
+                                              state is UploadChatImageLoadingState ||
+                                                      state
+                                                          is UpdateChatWallpapperLoadingState
+                                                  ? const CircularProgressIndicator()
+                                                  : TextButton(
+                                                      onPressed: () {
+                                                        widget.cubb
+                                                            .uploadChatimage(
+                                                                file: File(
+                                                                    value.path))
+                                                            .then((onValue) {
+                                                          widget.cubb
+                                                              .updateChatWallpaper(
+                                                                  chatId: widget
+                                                                      .chat
+                                                                      .chatId,
+                                                                  wallpaperUrl:
+                                                                      onValue);
+                                                        });
+                                                      },
+                                                      child: const Text(
+                                                        "Set as Wallpaper",
+                                                        style: TextStyle(
+                                                            color:
+                                                                Colors.white),
+                                                      ))
+                                            ],
+                                          ),
+                                        ),
+                                      ));
+                                }
+                                debugPrint("Image Picked");
+                              });
+                            }
+                            print('Selected: $value');
+                          },
+                          itemBuilder: (BuildContext context) {
+                            return [
+                              const PopupMenuItem<String>(
+                                value: 'swap',
+                                child: Text('Swap'),
+                              ),
+                              const PopupMenuItem<String>(
+                                value: 'delete',
+                                child: Text('Delete'),
+                              ),
+                              const PopupMenuItem<String>(
+                                value: 'wallpaper',
+                                child: Text('wallpaper'),
+                              ),
+                            ];
+                          },
+                          icon: const Icon(
+                              Icons.more_vert), // 3 dots icon for the menu
+                        ),
                       ],
                     ),
                   ),
@@ -177,6 +289,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               child: Center(
                                 child: Text(
                                   date,
+                                  style: const TextStyle(color: Colors.white),
                                 ),
                               ),
                             ),
@@ -270,6 +383,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 icon: const Icon(
                   Icons.send_rounded,
                   size: 32,
+                  color: Colors.white,
                 ),
                 onPressed: () async {
                   if (chatController.text.isNotEmpty || cubb.img != null) {
@@ -293,6 +407,7 @@ class _ChatScreenState extends State<ChatScreen> {
           icon: const Icon(
             Icons.add_photo_alternate_rounded,
             size: 32.0,
+            color: Colors.white,
           ),
           onPressed: () {
             cubb.pickChatImage(ImageSource.gallery);
@@ -420,37 +535,48 @@ class _ChatScreenState extends State<ChatScreen> {
               isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             GestureDetector(
+              onTap: messagesIds.isNotEmpty
+                  ? () {
+                      messagesIds.contains(message.id)
+                          ? messagesIds.remove(message.id)
+                          : messagesIds.add(message.id);
+                      cubb.selectMessage(message.id);
+                    }
+                  : () {},
               onLongPress: () {
-                showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextButton.icon(
-                                onPressed: () {
-                                  cubb.deleteChatMessage(
-                                      chatId: chatId, messageId: message.id);
-                                },
-                                label: const Text("Delete"),
-                                icon: const Icon(Icons.delete),
-                              ),
-                              !message.type
-                                  ? TextButton.icon(
-                                      onPressed: () {
-                                        cubb.copyToClipboard(message.message!);
-                                      },
-                                      label: const Text("Copy"),
-                                      icon: const Icon(Icons.copy),
-                                    )
-                                  : const SizedBox()
-                            ],
-                          ),
-                        ));
+                cubb.selectMessage(message.id);
+                messagesIds.add(message.id);
+                // showDialog(
+                //     context: context,
+                //     builder: (context) => AlertDialog(
+                //           content: Column(
+                //             mainAxisSize: MainAxisSize.min,
+                //             children: [
+                //               TextButton.icon(
+                //                 onPressed: () {
+                //                   cubb.deleteChatMessage(
+                //                       chatId: chatId, messageId: message.id);
+                //                 },
+                //                 label: const Text("Delete"),
+                //                 icon: const Icon(Icons.delete),
+                //               ),
+                //               !message.type
+                //                   ? TextButton.icon(
+                //                       onPressed: () {
+                //                         cubb.copyToClipboard(message.message!);
+                //                       },
+                //                       label: const Text("Copy"),
+                //                       icon: const Icon(Icons.copy),
+                //                     )
+                //                   : const SizedBox()
+                //             ],
+                //           ),
+                //         ));
               },
               child: Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadiusDirectional.only(
+                decoration: BoxDecoration(
+                  color: message.isSelected ? Colors.blue : Colors.white,
+                  borderRadius: const BorderRadiusDirectional.only(
                     topStart: Radius.circular(16.0),
                     topEnd: Radius.circular(16.0),
                     bottomStart: Radius.circular(16.0),
@@ -460,8 +586,15 @@ class _ChatScreenState extends State<ChatScreen> {
                     ? Padding(
                         padding: const EdgeInsets.all(7.0),
                         child: InkWell(
-                          onTap: () => FullScreenImageViewer.showFullImage(
-                              context, message.imagaeUrl),
+                          onTap: messagesIds.isNotEmpty
+                              ? () {
+                                  messagesIds.contains(message.id)
+                                      ? messagesIds.remove(message.id)
+                                      : messagesIds.add(message.id);
+                                  cubb.selectMessage(message.id);
+                                }
+                              : () => FullScreenImageViewer.showFullImage(
+                                  context, message.imagaeUrl),
                           child: ClipRRect(
                             borderRadius: const BorderRadiusDirectional.only(
                               topStart: Radius.circular(16.0),
@@ -494,6 +627,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             Text(
               formattedTime,
+              style: const TextStyle(color: Colors.white),
             ),
           ],
         ),
