@@ -13,6 +13,7 @@ import 'package:flutter_project/screens/stories/stories_screen.dart';
 import 'package:flutter_project/screens/user/user_screen/user_screen.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../data/user_story.dart';
 import 'app_states.dart';
 
 class AppCubit extends Cubit<AppStates> {
@@ -20,9 +21,13 @@ class AppCubit extends Cubit<AppStates> {
   static AppCubit get(BuildContext context) => BlocProvider.of(context);
 
 ///////////////////////
+
+  String? userName;
+
   ///
   final CollectionReference usersRef =
       FirebaseFirestore.instance.collection('Users');
+
 
   // Set the user's status to online
   Future<void> setUserOnline(String userId) async {
@@ -59,6 +64,29 @@ class AppCubit extends Cubit<AppStates> {
     return Future(() => null);
   }
 
+  Future<void> getUserName(String userId) async {
+    try {
+      emit(GetUserDataLoadingState());
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection("Users")
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        currentUser = UserModel.fromJson(snapshot.docs.first.data());
+        userName = currentUser?.name; // Update the userName variable
+        emit(GetUserDataSuccessState());
+      } else {
+        emit(GetUserDataFailedState());
+        userName = null; // No user found
+      }
+    } catch (error) {
+      emit(GetUserDataFailedState());
+      print(error);
+      userName = null; // Return null on error
+    }
+  }
   //////////////
   ///Change Screen (Navigation Bar)
   final pages = [const MyChasts(), const UserScreen(), StoriesScreen()];
@@ -333,4 +361,120 @@ class AppCubit extends Cubit<AppStates> {
     messages.removeAt(index);
     emit(TempDeleteState());
   }
-}
+
+  final CollectionReference storiesRef =
+  FirebaseFirestore.instance.collection('stories');
+
+  /// Pick Story Image
+  void pickAndUploadStoryImage(String userId) async {
+    final picker = ImagePicker();
+    emit(StoryImageLoadingState());
+
+    // Pick an image
+    await picker.pickImage(source: ImageSource.gallery).then((value) async {
+      if (value != null) {
+        File storyImage = File(value.path);
+        emit(PickStoryImageSuccessState());
+
+        // Upload to Firebase Storage
+        String storyImageUrl = await uploadStoryImage(storyImage);
+        if (storyImageUrl.isNotEmpty) {
+          // Add story metadata to Firestore
+          await addStory(userId: userId, imageUrl: storyImageUrl);
+        }
+      } else {
+        emit(PickStoryImageFailedState());
+      }
+    }).catchError((error) {
+      emit(PickStoryImageFailedState());
+      print("Error picking story image: $error");
+    });
+
+    getStories(userId);
+
+  }
+
+  /// upload an image
+  Future<String> uploadStoryImage(File imageFile) async {
+    emit(UploadStoryImageLoadingState());
+    try {
+      Reference ref = FirebaseStorage.instance
+          .ref()
+          .child('stories/${Uri.file(imageFile.path).pathSegments.last}');
+      TaskSnapshot snapShot = await ref.putFile(imageFile);
+      String downloadURL = await snapShot.ref.getDownloadURL();
+      emit(UploadStoryImageSuccessState());
+      return downloadURL;
+    } catch (e) {
+      emit(UploadStoryImageFailedState());
+      print("Error uploading story image: $e");
+      return '';
+    }
+  }
+
+  ///Add Story to Firestore
+  Future<void> addStory({required String userId, required String imageUrl}) async {
+    emit(AddStoryLoadingState());
+
+    try {
+      String storyId = FirebaseFirestore.instance.collection('stories').doc().id;
+      UserStory userStory = UserStory(
+        id: storyId,
+        userId: userId,
+        imgURL: imageUrl,
+        timeStamp: DateTime.now(),
+      );
+
+      await FirebaseFirestore.instance.collection('stories').doc(storyId).set({
+        'id': userStory.id,
+        'userId': userStory.userId,
+        'imgURL': userStory.imgURL,
+        'timeStamp': userStory.timeStamp.toIso8601String(),
+      });
+
+      emit(AddStorySuccessState());
+    } catch (e) {
+      emit(AddStoryFailedState());
+      print("Error adding story to Firestore: $e");
+    }
+  }
+
+  /// Get All Stories
+  List<UserStory> stories = [];
+
+  void getStories(String userId) {
+    emit(GetStoriesLoadingState());
+    FirebaseFirestore.instance
+        .collection('stories')
+        .orderBy('timeStamp', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+      stories = snapshot.docs.map((doc) {
+        final timestamp = doc['timeStamp'];
+        DateTime timeStampDateTime = timestamp is Timestamp ? timestamp.toDate() : DateTime.now();
+        return UserStory(
+            id: doc['id'] ?? '',
+            userId: doc['userId'] ?? '',
+            imgURL: doc['imgURL'] ?? '',
+            timeStamp: timeStampDateTime
+        );
+      }).toList();
+      emit(GetStoriesSuccessState());
+    });
+  }
+
+
+  void uploadStory(String userId, String imgUrl) {
+  FirebaseFirestore.instance.collection('stories').add({
+  'userId': userId,
+  'imgURL': imgUrl,
+  'timeStamp': FieldValue.serverTimestamp(),
+  }).then((value) {
+  getStories(userId); // Refresh stories after upload
+  emit(AddStorySuccessState());
+  }).catchError((error) {
+  emit(UploadStoryImageFailedState());
+  });
+  }
+  }
+
