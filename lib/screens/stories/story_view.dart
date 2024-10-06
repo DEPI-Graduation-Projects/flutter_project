@@ -1,49 +1,134 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_project/data/user_story.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-class StoryView extends StatelessWidget {
+import '../../cubit/app_cubit.dart';
+import '../../cubit/app_states.dart';
+import '../../data/user_story.dart';
 
-  final UserStory story;
+class StoryView extends StatefulWidget {
+  final List<UserStory> stories;
+  final int initialIndex;
 
-  const StoryView({super.key, required this.story});
+  const StoryView({super.key, required this.stories, this.initialIndex = 0});
 
-  Future<void> _deleteStory(BuildContext context) async {
-    final String storyId = story.id;
-    final FirebaseFirestore fireStore = FirebaseFirestore.instance;
-    final FirebaseStorage storage = FirebaseStorage.instance;
+  @override
+  _StoryViewState createState() => _StoryViewState();
+}
 
-    await fireStore.collection('stories').doc(storyId).delete();
+class _StoryViewState extends State<StoryView> {
+  late PageController _pageController;
+  late int _currentIndex;
+  bool _showUserName = true;
 
-    try {
-      Reference ref = storage.ref().child('stories/$storyId');
-      await ref.delete();
-    } catch (e) {
-      print('Error deleting image from storage: $e');
-    }
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: _currentIndex);
+  }
 
-    Navigator.pop(context); // Close the StoryView after deletion
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: GestureDetector(
-        onTap: () => Navigator.pop(context),
-        child: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-                image: NetworkImage(story.imgURL),
-            )
-          ),
+    return SafeArea(
+      child: BlocProvider(
+        create: (context) => AppCubit(),
+        child: BlocConsumer<AppCubit, AppStates>(
+          listener: (context, state) {
+            if (state is DeleteStorySuccessState) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Story deleted successfully!')),
+              );
+              if (widget.stories.length > 1) {
+                setState(() {
+                  widget.stories.removeAt(_currentIndex);
+                  if (_currentIndex > 0) _currentIndex--;
+                });
+              } else {
+                Navigator.pop(context);
+              }
+            } else if (state is DeleteStoryFailedState) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Failed to delete story!')),
+              );
+            }
+          },
+          builder: (context, state) {
+            var cubit = AppCubit.get(context);
+            return Scaffold(
+              body: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                onLongPress: () {
+                  setState(() {
+                    _showUserName = !_showUserName;
+                  });
+                },
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: widget.stories.length,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: NetworkImage(widget.stories[index].imgURL),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        if (_showUserName)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10),
+                            child: Text(
+                              '${cubit.currentUser?.name}\'s Story',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                shadows: [
+                                  Shadow(
+                                    blurRadius: 10.0,
+                                    color: Colors.black,
+                                    offset: Offset(2.0, 2.0),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              floatingActionButton: IconButton(
+                onPressed: () {
+                  cubit.deleteStory(storyId: widget.stories[_currentIndex].id);
+                },
+                icon: state is DeleteStoryLoadingState
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Icon(Icons.delete, color: Colors.white, size: 40, shadows: [
+                  Shadow(
+                    blurRadius: 50.0,
+                    color: Colors.grey,
+                    offset: Offset(2.0, 2.0),
+                  ),
+                ],),
+              ),
+            );
+          },
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async{
-          _deleteStory(context);
-        },
-      child: const Icon(Icons.delete),
       ),
     );
   }
