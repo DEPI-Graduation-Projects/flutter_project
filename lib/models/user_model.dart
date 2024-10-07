@@ -3,8 +3,9 @@ class UserModel {
   final String userId;
   final bool status;
   final List<Map<String, dynamic>> chatWallpapers;
+  final String? profilePhoto;
 
-  UserModel({
+  UserModel(this.profilePhoto, {
     required this.name,
     required this.status,
     required this.userId,
@@ -13,6 +14,7 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
+      json['profilePhoto'],
       name: json['name'],
       status: json['status'],
       userId: json['userId'],
@@ -26,6 +28,7 @@ class UserModel {
       'userId': userId,
       'status': status,
       'chatWallpapers': chatWallpapers,
+      'profilePhoto': profilePhoto,
     };
   }
 }

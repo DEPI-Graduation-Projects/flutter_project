@@ -24,7 +24,7 @@ class AppCubit extends Cubit<AppStates> {
 
 ///////////////////////
 
-  String? userName;
+  // String? userName;
 
   ///
   final CollectionReference usersRef =
@@ -66,7 +66,8 @@ class AppCubit extends Cubit<AppStates> {
     return Future(() => null);
   }
 
-  Future<void> getUserName(String userId) async {
+
+  Future<String> getUserName(String userId) async {
     try {
       emit(GetUserDataLoadingState());
 
@@ -76,21 +77,21 @@ class AppCubit extends Cubit<AppStates> {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        currentUser = UserModel.fromJson(snapshot.docs.first.data());
-        userName = currentUser?.name; // Update the userName variable
+        final userModel = UserModel.fromJson(snapshot.docs[1].data()) ;
         emit(GetUserDataSuccessState());
+        return userModel.name;
       } else {
         emit(GetUserDataFailedState());
-        userName = null; // No user found
+        return 'Unknown';
       }
     } catch (error) {
       emit(GetUserDataFailedState());
       print(error);
-      userName = null; // Return null on error
+      return error.toString();
     }
   }
 
-  //////////////
+  ////////////
   ///Change Screen (Navigation Bar)
   final pages = [const MyChasts(), const UserScreen(), const StoriesScreen()];
   int selectedIndex = 0;
