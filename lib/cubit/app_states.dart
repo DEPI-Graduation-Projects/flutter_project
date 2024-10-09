@@ -68,3 +68,35 @@ class UpdateMessageSuccessState extends AppStates {}
 class TurnReplyOnState extends AppStates {}
 
 class CancleReplyState extends AppStates {}
+
+class StoryImageLoadingState extends AppStates {}
+
+class PickStoryImageSuccessState extends AppStates {}
+
+class PickStoryImageFailedState extends AppStates {}
+
+class UploadStoryImageLoadingState extends AppStates {}
+
+class UploadStoryImageSuccessState extends AppStates {}
+
+class AddStorySuccessState extends AppStates {}
+
+class AddStoryFailedState extends AppStates {}
+
+class GetStoriesLoadingState extends AppStates {}
+
+class GetStoriesSuccessState extends AppStates {}
+
+class AddStoryLoadingState extends AppStates {}
+
+class UploadStoryImageFailedState extends AppStates {}
+
+class GetStoriesErrorState extends AppStates {
+  GetStoriesErrorState(String e);
+}
+
+class DeleteStoryLoadingState extends AppStates {}
+
+class DeleteStorySuccessState extends AppStates {}
+
+class DeleteStoryFailedState extends AppStates {}

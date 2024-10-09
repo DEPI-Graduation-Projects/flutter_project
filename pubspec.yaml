@@ -46,6 +46,7 @@ dependencies:
   loading_alert_dialog: ^1.1.0
   photo_view: ^0.15.0
   cached_network_image: ^3.4.0
+  get: ^4.6.6
 
 
 
