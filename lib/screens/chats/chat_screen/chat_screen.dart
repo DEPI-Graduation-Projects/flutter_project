@@ -1,5 +1,6 @@
 // ignore_for_file: must_be_immutable
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
 import 'package:flutter_project/models/chat_model.dart';
 import 'package:flutter_project/models/message_model.dart';
+import 'package:flutter_project/screens/user/users_screen/users_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -28,6 +30,10 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  // StreamSubscription?
+  // _messageSubscription; // Subscription to listen for new messages
+
+  // bool isChatScreenActive = false;
   TextEditingController chatController = TextEditingController();
   List<String> messagesIds = [];
   String formatDate(String dateTimeString) {
@@ -42,15 +48,55 @@ class _ChatScreenState extends State<ChatScreen> {
     ).format(dateTime);
   }
 
+  late ScrollController _scrollController;
+  List<String> dates = [];
+  String date = "";
+
   @override
   void initState() {
     super.initState();
-    initializeDateFormatting('en', null).then((_) {
-      // Your date formatting code will work fine now.
-    });
-    widget.cubb.getChatMessages(
-        userId: widget.cubb.userId, chatId: widget.chat.chatId);
+    initializeDateFormatting('en', null).then((_) {});
+    _scrollController = ScrollController();
+
+    // isChatScreenActive = true;
+    String userId =
+        widget.chat.usersIds.firstWhere((id) => id != AppCubit.userId);
+
+    widget.cubb.listenForNewMessages(widget.chat.chatId, userId);
+
+    widget.cubb
+        .getChatMessages(userId: AppCubit.userId, chatId: widget.chat.chatId);
   }
+
+  @override
+  void dispose() {
+    // Mark the screen as inactive when leaving
+
+    // Stop listening for new messages
+
+    _scrollController.dispose();
+    super.dispose();
+  }
+  // void listenForNewMessages(String userId) {
+  //   _messageSubscription = widget.cubb.listenForNewMessages(widget.chat.chatId, userId).listen((snapshot) {
+  //     if (isChatScreenActive) {
+  //       markMessagesAsSeen(snapshot); // Mark messages as seen
+  //     }
+  //   });
+  // }
+
+  // // Function to mark messages as seen (customize according to your logic)
+  // void markMessagesAsSeen(QuerySnapshot snapshot) {
+  //   for (var doc in snapshot.docs) {
+  //     var message = doc.data();
+  //     // Check if the message is not seen and mark it as seen
+  //     if (message['status'] != 'seen') {
+  //       widget.cubb.markMessageAsSeen(doc.id, widget.chat.chatId);
+  //     }
+  //   }
+  // }
+
+  String? highlightedMessageId;
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +129,8 @@ class _ChatScreenState extends State<ChatScreen> {
           ScaffoldMessenger.of(context)
               .showSnackBar(const SnackBar(content: Text("Wallpaper updated")));
           Navigator.pop(context);
+        } else if (state is CancleReplyState) {
+          widget.cubb.replyMessage = null;
         }
       },
       builder: (context, state) {
@@ -100,8 +148,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8.0),
-                    decoration: const BoxDecoration(
-                      color: Colors.amber,
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade600,
                     ),
                     child: Row(
                       children: [
@@ -112,7 +160,6 @@ class _ChatScreenState extends State<ChatScreen> {
                           icon: const Icon(
                             Icons.arrow_back_ios_new_rounded,
                             size: 28,
-                            // color: Components.setTextColor(cubb.isDarkMode),
                           ),
                         ),
                         SizedBox(
@@ -129,7 +176,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                   child: widget.cubb.currentUser != null
                                       ? CircleAvatar(
                                           radius: 8,
-                                          backgroundColor: Colors.amber,
+                                          backgroundColor:
+                                              Colors.amber.shade600,
                                           child: CircleAvatar(
                                             radius: 7,
                                             backgroundColor:
@@ -177,20 +225,17 @@ class _ChatScreenState extends State<ChatScreen> {
                             : const SizedBox(),
                         PopupMenuButton<String>(
                           onSelected: (value) {
-                            // Handle the selected value here
                             if (value == 'swap') {
                               setState(() {
                                 widget.cubb
                                     .changeUserId(widget.cubb.isMe, context);
                                 widget.cubb.isMe = !(widget.cubb.isMe);
                               });
-                              // Perform block action
                             } else if (value == 'delete') {
                               messagesIds.isNotEmpty
                                   ? widget.cubb.deleteSelectedMessages(
                                       messagesIds, widget.chat.chatId)
                                   : null;
-                              // Perform delete action
                             } else {
                               final picker = ImagePicker();
                               picker
@@ -263,47 +308,86 @@ class _ChatScreenState extends State<ChatScreen> {
                               ),
                             ];
                           },
-                          icon: const Icon(
-                              Icons.more_vert), // 3 dots icon for the menu
+                          icon: const Icon(Icons.more_vert),
                         ),
+                        messagesIds.isNotEmpty
+                            ? IconButton(
+                                onPressed: () {
+                                  widget.cubb.getallUsers().then((onValue) {
+                                    String forwardMessage = "";
+
+                                    for (var message in widget.cubb.messages) {
+                                      if (message.id == messagesIds[0]) {
+                                        forwardMessage = message.message!;
+                                      }
+                                    }
+                                    // .firstWhere((message) =>
+                                    //     message.id ==
+                                    //     messagesIds.where((user) =>
+                                    //         user !=
+                                    //         AppCubit.userId))
+                                    // .message!;
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => UsersScreen(
+                                            message: forwardMessage,
+                                            cubb: widget.cubb,
+                                          ),
+                                        ));
+                                  });
+                                },
+                                icon: const Icon(Icons.forward))
+                            : const SizedBox()
                       ],
                     ),
                   ),
                   Expanded(
                     child: ListView.builder(
+                      controller: _scrollController,
                       reverse: true,
-                      itemCount:
-                          _groupMessagesByDate(widget.cubb.messages).length,
+                      itemCount: widget.cubb.messages.length,
                       itemBuilder: (context, index) {
-                        final dateGroup =
-                            _groupMessagesByDate(widget.cubb.messages)[index];
-                        final messages =
-                            dateGroup['messages'] as List<MessageModel>;
-                        final date = dateGroup['date'] as String;
+                        final message = widget.cubb.messages[index];
+
+                        final currentDate =
+                            formatDate(message.time); // Format the date
+
+                        bool isLastMessageOfDay = (index ==
+                                widget.cubb.messages.length - 1) ||
+                            formatDate(widget.cubb.messages[index + 1].time) !=
+                                currentDate;
+                        bool isHighlighted = message.id == highlightedMessageId;
 
                         return Column(
                           children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 10.0),
-                              child: Center(
-                                child: Text(
-                                  date,
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
+                            isLastMessageOfDay
+                                ? Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10.0),
+                                    child: Center(
+                                      child: Text(
+                                        currentDate,
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                      ),
+                                    ),
+                                  )
+                                : const SizedBox(),
+                            _buildMessage(
+                              index: index,
+                              message: message,
+                              context: context,
+                              isDarkMode: false,
+                              cubb: widget.cubb,
+                              chatId: widget.chat.chatId,
+                              isMe: message.senderId == AppCubit.userId,
+                              isHighlighted: isHighlighted,
                             ),
-                            ...messages.map((message) {
-                              return _buildMessage(
-                                  message: message,
-                                  context: context,
-                                  isDarkMode: false,
-                                  cubb: widget.cubb,
-                                  chatId: widget.chat.chatId,
-                                  isMe: message.senderId == "22010237");
-                            }),
                           ],
                         );
+
+                        // Empty widget for unexpected cases
                       },
                     ),
                   ),
@@ -315,7 +399,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           topRight: Radius.circular(24.0),
                         ),
                       ),
-                      child: bottomBar(widget.cubb, widget.cubb.userId, state))
+                      child: bottomBar(widget.cubb, AppCubit.userId, state,
+                          widget.cubb.replyMessage)),
                 ],
               ),
             ),
@@ -325,7 +410,32 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget bottomBar(AppCubit cubb, userId, state) {
+  void _scrollToMessage(String messageId) {
+    final messagesList = widget.cubb.messages;
+    final messageIndex =
+        messagesList.indexWhere((item) => (item.id == messageId));
+    print(messageIndex);
+
+    if (messageIndex != -1) {
+      _scrollController.animateTo(
+        messageIndex * 100,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      setState(() {
+        highlightedMessageId = messageId;
+      });
+      Future.delayed(const Duration(seconds: 2), () {
+        setState(() {
+          highlightedMessageId = null;
+        });
+      });
+    } else {
+      print("Message not found");
+    }
+  }
+
+  Widget bottomBar(AppCubit cubb, userId, state, MessageModel? replyMessage) {
     return Row(
       children: [
         Expanded(
@@ -366,24 +476,58 @@ class _ChatScreenState extends State<ChatScreen> {
                     ],
                   ),
                 )
-              : DefaultTextField(
-                  height: 8,
-                  type: TextInputType.text,
-                  onChanged: (value) {},
-                  label: "Enter a message",
-                  controller: chatController,
-                  errStr: "please Enter a message",
-                  maxLines: 2,
+              : SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    children: [
+                      state is TurnReplyOnState
+                          ? Column(
+                              children: [
+                                Align(
+                                  alignment: AlignmentDirectional.topEnd,
+                                  child: InkWell(
+                                    onTap: () {
+                                      cubb.cancleReply();
+                                    },
+                                    child: const CircleAvatar(
+                                      backgroundColor: Colors.amber,
+                                      radius: 10,
+                                      child: Icon(
+                                        color: Colors.white,
+                                        Icons.close,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                replyItem(cubb.replyMessage!.message!, false)
+                              ],
+                            )
+                          : Container(
+                              color: Colors.white,
+                            ),
+                      DefaultTextField(
+                        replyOn: cubb.isReplyOn,
+                        height: 8,
+                        type: TextInputType.text,
+                        onChanged: (value) {},
+                        label: "Enter a message",
+                        controller: chatController,
+                        errStr: "please Enter a message",
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
                 ),
         ),
         const SizedBox(width: 8),
         state is UploadChatImageLoadingState
             ? const CircularProgressIndicator()
             : IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.send_rounded,
                   size: 32,
-                  color: Colors.white,
+                  color: Colors.amber.shade600,
                 ),
                 onPressed: () async {
                   if (chatController.text.isNotEmpty || cubb.img != null) {
@@ -391,23 +535,29 @@ class _ChatScreenState extends State<ChatScreen> {
                     if (cubb.img != null) {
                       imageUrl = await cubb.uploadChatimage(file: cubb.img);
                     }
+
                     await cubb.addMessage(
+                        replyMessage:
+                            replyMessage != null ? replyMessage.message : "",
                         chatId: widget.chat.chatId,
                         userId: userId,
                         type: imageUrl.isNotEmpty,
                         imagaeUrl: imageUrl,
-                        message: chatController.text);
+                        message: chatController.text,
+                        replyMessageId:
+                            replyMessage != null ? replyMessage.id : "");
                   }
                   chatController.clear();
                   cubb.img = null;
                   cubb.changeSendIcon('');
+                  cubb.cancleReply();
                 },
               ),
         IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.add_photo_alternate_rounded,
             size: 32.0,
-            color: Colors.white,
+            color: Colors.amber.shade600,
           ),
           onPressed: () {
             cubb.pickChatImage(ImageSource.gallery);
@@ -417,219 +567,196 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  List<Map<String, dynamic>> _groupMessagesByDate(List<MessageModel> messages) {
-    Map<String, List<MessageModel>> groupedMessages = {};
-
-    for (var message in messages) {
-      String formattedDate = formatDate(message.time);
-      if (groupedMessages.containsKey(formattedDate)) {
-        groupedMessages[formattedDate]!.add(message);
-      } else {
-        groupedMessages[formattedDate] = [message];
-      }
-    }
-
-    List<Map<String, dynamic>> groupedMessagesList =
-        groupedMessages.entries.map((entry) {
-      // Sort messages within each date group in descending order by time
-      entry.value.sort(
-          (a, b) => DateTime.parse(a.time).compareTo(DateTime.parse(b.time)));
-      return {'date': entry.key, 'messages': entry.value};
-    }).toList();
-
-    // Sort the grouped messages in descending order by date
-    groupedMessagesList.sort((a, b) {
-      DateTime dateA = DateTime.parse(a['date']);
-      DateTime dateB = DateTime.parse(b['date']);
-      return dateB.compareTo(dateA);
-    });
-    print(groupedMessagesList);
-    return groupedMessagesList;
+  Widget replyItem(String reply, bool onMessage) {
+    return Container(
+      padding:
+          const EdgeInsetsDirectional.symmetric(horizontal: 2, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade700,
+        border: Border.all(width: 1, color: Colors.grey),
+        borderRadius: BorderRadiusDirectional.only(
+          bottomEnd: Radius.circular(onMessage ? 20 : 0),
+          bottomStart: Radius.circular(onMessage ? 20 : 0),
+          topStart: const Radius.circular(20),
+          topEnd: const Radius.circular(20),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          border: Border.all(width: 2, color: Colors.black),
+          borderRadius: const BorderRadiusDirectional.all(
+            Radius.circular(20),
+          ),
+        ),
+        child: Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: Text(
+            reply,
+            maxLines: 2,
+            style: const TextStyle(color: Colors.white),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
   }
 
-  // Widget _buildOtherMessage(
-  //   MessageModel message,
-  //   context,
-  //   bool isDarkMode,
-  // ) {
-  //   String formattedTime = formatTime(message.time);
-
-  //   return Align(
-  //     alignment: AlignmentDirectional.centerStart,
-  //     child: Padding(
-  //       padding: const EdgeInsets.all(10.0),
-  //       child: Column(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           Container(
-  //             decoration: const BoxDecoration(
-  //               borderRadius: BorderRadiusDirectional.only(
-  //                 topStart: Radius.circular(16.0),
-  //                 topEnd: Radius.circular(16.0),
-  //                 bottomEnd: Radius.circular(16.0),
-  //               ),
-  //             ),
-  //             child: message.type
-  //                 ? Padding(
-  //                     padding: const EdgeInsets.all(7.0),
-  //                     child: InkWell(
-  //                       onTap: () {
-  //                         FullScreenImageViewer.showFullImage(
-  //                             context, message.imagaeUrl);
-  //                       },
-  //                       child: ClipRRect(
-  //                         borderRadius: const BorderRadiusDirectional.only(
-  //                           topStart: Radius.circular(16.0),
-  //                           topEnd: Radius.circular(16.0),
-  //                           bottomEnd: Radius.circular(16.0),
-  //                         ),
-  //                         child: CachedNetworkImage(
-  //                           imageUrl: message.imagaeUrl!,
-  //                           height: 200,
-  //                           width: 200,
-  //                           fit: BoxFit.cover,
-  //                           placeholder: (context, url) => const Center(
-  //                               child: CircularProgressIndicator()),
-  //                           errorWidget: (context, url, error) =>
-  //                               const Icon(Icons.error),
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   )
-  //                 : Padding(
-  //                     padding: const EdgeInsets.symmetric(
-  //                       horizontal: 8,
-  //                       vertical: 8,
-  //                     ),
-  //                     child: Text(
-  //                       message.message!,
-  //                     ),
-  //                   ),
-  //           ),
-  //           Text(
-  //             formattedTime,
-  //           )
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
-
   Widget _buildMessage(
-      {required MessageModel message,
+      {index,
+      required MessageModel message,
       required context,
       required bool isDarkMode,
       required bool isMe,
       required chatId,
-      required AppCubit cubb}) {
+      required AppCubit cubb,
+      isHighlighted}) {
     String formattedTime = formatTime(message.time);
 
-    return Align(
-      alignment: isMe
-          ? AlignmentDirectional.centerEnd
-          : AlignmentDirectional.centerStart,
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          crossAxisAlignment:
-              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: messagesIds.isNotEmpty
-                  ? () {
-                      messagesIds.contains(message.id)
-                          ? messagesIds.remove(message.id)
-                          : messagesIds.add(message.id);
-                      cubb.selectMessage(message.id);
-                    }
-                  : () {},
-              onLongPress: () {
-                cubb.selectMessage(message.id);
-                messagesIds.add(message.id);
-                // showDialog(
-                //     context: context,
-                //     builder: (context) => AlertDialog(
-                //           content: Column(
-                //             mainAxisSize: MainAxisSize.min,
-                //             children: [
-                //               TextButton.icon(
-                //                 onPressed: () {
-                //                   cubb.deleteChatMessage(
-                //                       chatId: chatId, messageId: message.id);
-                //                 },
-                //                 label: const Text("Delete"),
-                //                 icon: const Icon(Icons.delete),
-                //               ),
-                //               !message.type
-                //                   ? TextButton.icon(
-                //                       onPressed: () {
-                //                         cubb.copyToClipboard(message.message!);
-                //                       },
-                //                       label: const Text("Copy"),
-                //                       icon: const Icon(Icons.copy),
-                //                     )
-                //                   : const SizedBox()
-                //             ],
-                //           ),
-                //         ));
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: message.isSelected ? Colors.blue : Colors.white,
-                  borderRadius: const BorderRadiusDirectional.only(
-                    topStart: Radius.circular(16.0),
-                    topEnd: Radius.circular(16.0),
-                    bottomStart: Radius.circular(16.0),
-                  ),
-                ),
-                child: message.type
-                    ? Padding(
-                        padding: const EdgeInsets.all(7.0),
-                        child: InkWell(
-                          onTap: messagesIds.isNotEmpty
-                              ? () {
-                                  messagesIds.contains(message.id)
-                                      ? messagesIds.remove(message.id)
-                                      : messagesIds.add(message.id);
-                                  cubb.selectMessage(message.id);
-                                }
-                              : () => FullScreenImageViewer.showFullImage(
-                                  context, message.imagaeUrl),
-                          child: ClipRRect(
-                            borderRadius: const BorderRadiusDirectional.only(
-                              topStart: Radius.circular(16.0),
-                              topEnd: Radius.circular(16.0),
-                              bottomStart: Radius.circular(16.0),
-                            ),
-                            child: CachedNetworkImage(
-                              imageUrl: message.imagaeUrl!,
-                              height: 200,
-                              width: 200,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => const Center(
-                                  child: CircularProgressIndicator()),
-                              errorWidget: (context, url, error) =>
-                                  const Icon(Icons.error),
-                            ),
+    return CustomSwipeItem(
+      isMe: isMe,
+      fun: () {
+        cubb.turnReply(message);
+      },
+      child: Align(
+        alignment: isMe
+            ? AlignmentDirectional.centerEnd
+            : AlignmentDirectional.centerStart,
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10.0),
+            margin: const EdgeInsets.symmetric(vertical: 4.0),
+            decoration: BoxDecoration(
+              color: isHighlighted
+                  ? Colors.amber.shade900
+                      .withOpacity(0.5) // Highlighted background color
+                  : Colors.transparent, // Default background color
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: Column(
+              crossAxisAlignment:
+                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: messagesIds.isNotEmpty
+                      ? () {
+                          messagesIds.contains(message.id)
+                              ? messagesIds.remove(message.id)
+                              : messagesIds.add(message.id);
+                          cubb.selectMessage(message.id);
+                        }
+                      : () {
+                          print(index);
+                        },
+                  onLongPress: () {
+                    messagesIds.contains(message.id)
+                        ? messagesIds.remove(message.id)
+                        : messagesIds.add(message.id);
+                    cubb.selectMessage(message.id);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      message.replyMessage.isNotEmpty
+                          ? ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width *
+                                    0.5, // Limit to 80% of screen width
+                              ),
+                              child: GestureDetector(
+                                  onTap: () {
+                                    _scrollToMessage(message.replyMessageId);
+                                  },
+                                  child: replyItem(message.replyMessage, true)))
+                          : const SizedBox(),
+                      Container(
+                        width: message.replyMessage.isNotEmpty
+                            ? MediaQuery.of(context).size.width * 0.5
+                            : null,
+                        decoration: BoxDecoration(
+                          color: message.isSelected
+                              ? Colors.blue
+                              : isMe
+                                  ? Colors.amber.shade700
+                                  : const Color(0xFF263238),
+                          borderRadius: BorderRadiusDirectional.only(
+                            topStart: const Radius.circular(16.0),
+                            topEnd: const Radius.circular(16.0),
+                            bottomStart: Radius.circular(isMe ? 16.0 : 0),
+                            bottomEnd: Radius.circular(isMe ? 0.0 : 16.0),
                           ),
                         ),
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                        child: Text(
-                          message.message!,
-                        ),
+                        child: message.type
+                            ? Padding(
+                                padding: const EdgeInsets.all(7.0),
+                                child: InkWell(
+                                  onTap: messagesIds.isNotEmpty
+                                      ? () {
+                                          messagesIds.contains(message.id)
+                                              ? messagesIds.remove(message.id)
+                                              : messagesIds.add(message.id);
+                                          cubb.selectMessage(message.id);
+                                        }
+                                      : () =>
+                                          FullScreenImageViewer.showFullImage(
+                                              context, message.imagaeUrl),
+                                  child: ClipRRect(
+                                    borderRadius:
+                                        const BorderRadiusDirectional.only(
+                                      topStart: Radius.circular(16.0),
+                                      topEnd: Radius.circular(16.0),
+                                      bottomStart: Radius.circular(16.0),
+                                    ),
+                                    child: CachedNetworkImage(
+                                      imageUrl: message.imagaeUrl!,
+                                      height: 200,
+                                      width: 200,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          const Center(
+                                              child:
+                                                  CircularProgressIndicator()),
+                                      errorWidget: (context, url, error) =>
+                                          const Icon(Icons.error),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  style: const TextStyle(color: Colors.white),
+                                  message.message!,
+                                ),
+                              ),
                       ),
-              ),
+                    ],
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    isMe
+                        ? Icon(
+                            Icons.done_all,
+                            color: message.isSeen ? Colors.blue : Colors.grey,
+                          )
+                        : const SizedBox(),
+                    Text(
+                      formattedTime,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            Text(
-              formattedTime,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ],
+          ),
         ),
       ),
     );

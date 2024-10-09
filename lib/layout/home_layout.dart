@@ -13,8 +13,9 @@ class HomeLayout extends StatefulWidget {
 }
 
 class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
-  final String userId = "22010237";
-  // bool isMe = false;
+  String userId = "22010237";
+  bool isMe = false;
+  bool setOnline = true;
 
   @override
   void initState() {
@@ -37,6 +38,17 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
     }
   }
 
+  void changeUser() {
+    setState(() {
+      userId = isMe ? "22010237" : "22010289";
+      AppCubit.userId = isMe ? "22010237" : "22010289";
+      print(AppCubit.userId);
+      widget.cubb.setUserOnline(userId);
+      widget.cubb.setUserOffline(!isMe ? "22010237" : "22010289");
+      isMe = !isMe;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AppCubit, AppStates>(
@@ -44,7 +56,7 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
       builder: (context, state) => Scaffold(
         appBar: AppBar(
           elevation: 1,
-          title: const Text("ChatApp"),
+          title: Text("ChatApp       Hello $userId"),
           actions: [
             IconButton(onPressed: () {}, icon: const Icon(Icons.search))
           ],
@@ -60,11 +72,11 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
                 height: double.infinity,
                 padding: const EdgeInsetsDirectional.only(end: 20, start: 5),
                 decoration: const BoxDecoration(
+
                     // border: BorderDirectional(
                     //     end: BorderSide(
                     //         style: BorderStyle.none, color: Colors.black)
                     //         )
-
                     ),
                 child: Column(
                   children: [
@@ -72,7 +84,7 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
                       height: MediaQuery.of(context).size.height * 0.2,
                     ),
                     SideNavigationBarItem(
-                      fun: () {
+                      onClick: () {
                         widget.cubb.changeScreen(0);
                       },
                       icon: Icons.chat,
@@ -81,7 +93,7 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 15),
                     SideNavigationBarItem(
-                      fun: () {
+                      onClick: () {
                         widget.cubb.changeScreen(1);
                       },
                       icon: Icons.person,
@@ -90,7 +102,7 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 15),
                     SideNavigationBarItem(
-                      fun: () {
+                      onClick: () {
                         widget.cubb.changeScreen(2);
                       },
                       icon: Icons.update,
@@ -98,15 +110,13 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
                       isSelected: widget.cubb.selectedIndex == 2,
                     ),
                     const SizedBox(height: 15),
-                    // IconButton(
-                    //     onPressed: () {
-                    //       setState(() {
-                    //         userId = isMe ? "22010237" : "22010289";
-                    //         isMe = !isMe;
-                    //         print(userId);
-                    //       });
-                    //     },
-                    //     icon: const Icon(Icons.swap_calls))
+                    IconButton(
+                        onPressed: () {
+                          setState(() {
+                            changeUser();
+                          });
+                        },
+                        icon: const Icon(Icons.swap_calls))
                   ],
                 ),
               ),
@@ -128,7 +138,7 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
                   ),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  child: widget.cubb.pages[widget.cubb.selectedIndex],
+                  child: widget.cubb.screens[widget.cubb.selectedIndex],
                 ),
               ),
             ],

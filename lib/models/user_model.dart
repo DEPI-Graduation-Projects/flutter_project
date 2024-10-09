@@ -2,7 +2,7 @@ class UserModel {
   final String name;
   final String userId;
   final bool status;
-  final List<Map<String, dynamic>> chatWallpapers;
+  final Map<String, dynamic> chatWallpapers;
 
   UserModel({
     required this.name,
@@ -16,7 +16,7 @@ class UserModel {
       name: json['name'],
       status: json['status'],
       userId: json['userId'],
-      chatWallpapers: List<Map<String, dynamic>>.from(json['chatWallpapers']),
+      chatWallpapers: Map<String, dynamic>.from(json['chatWallpapers']),
     );
   }
 

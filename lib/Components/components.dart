@@ -9,12 +9,12 @@ import 'package:photo_view/photo_view.dart';
 class SideNavigationBarItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback fun;
+  final VoidCallback onClick;
   final bool isSelected;
 
   const SideNavigationBarItem({
     super.key,
-    required this.fun,
+    required this.onClick,
     required this.icon,
     required this.label,
     required this.isSelected,
@@ -25,7 +25,7 @@ class SideNavigationBarItem extends StatelessWidget {
     return Column(
       children: [
         InkWell(
-          onTap: fun,
+          onTap: onClick,
           child: Container(
             height: 50,
             width: 50,
@@ -34,7 +34,7 @@ class SideNavigationBarItem extends StatelessWidget {
               shape: BoxShape.circle, // Makes the container circular
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.6),
+                  color: Colors.grey.withOpacity(1),
                   blurRadius: 5.0,
                   spreadRadius: 2.0,
                   offset: const Offset(0, 3), // Adds shadow effect
@@ -44,7 +44,8 @@ class SideNavigationBarItem extends StatelessWidget {
             child: Center(
               child: Icon(
                 icon,
-                color: isSelected ? Colors.green : Colors.grey,
+                color:
+                    isSelected ? Colors.amber.shade700 : Colors.grey.shade800,
                 size: 30, // Size of the icon
               ),
             ),
@@ -55,7 +56,7 @@ class SideNavigationBarItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 14,
-            color: isSelected ? Colors.green : Colors.grey,
+            color: isSelected ? Colors.orange.shade900 : Colors.grey,
           ),
         ),
       ],
@@ -66,11 +67,12 @@ class SideNavigationBarItem extends StatelessWidget {
 class DefaultTextField extends StatelessWidget {
   DefaultTextField({
     super.key,
+    replyOn,
     required this.type,
     required this.label,
     required this.controller,
     this.textInputAction = TextInputAction.next,
-    required this.errStr,
+    errStr,
     this.enabled = true,
     this.isPassword = false,
     this.onChanged,
@@ -84,12 +86,13 @@ class DefaultTextField extends StatelessWidget {
   TextInputType? type;
   TextEditingController controller;
   String label;
-  String errStr;
+  String? errStr;
   TextInputAction textInputAction;
   Widget? suffixIcon;
   bool isPassword;
   bool enabled;
   int? maxLength;
+  bool replyOn = false;
 
   int? maxLines;
   void Function(String)? onSubmit;
@@ -99,37 +102,52 @@ class DefaultTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AppCubit, AppStates>(builder: (context, state) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(24.0),
-        child: TextFormField(
-          onFieldSubmitted: onSubmit,
-          enabled: enabled,
-          textAlign: textAlign ?? TextAlign.start,
-          textAlignVertical: TextAlignVertical.center,
-          maxLength: maxLength,
-          keyboardType: type,
-          controller: controller,
-          maxLines: maxLines ?? 1,
-          onChanged: onChanged,
-          validator: (value) {
-            if (value!.isEmpty) {
-              return '$errStr is required';
-            }
-            return null;
-          },
-          obscureText: isPassword,
-          textInputAction: textInputAction,
-          decoration: InputDecoration(
-            counterText: '',
-            contentPadding: EdgeInsetsDirectional.symmetric(
-              horizontal: 12.0,
-              vertical: height ?? 12,
+      return Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.amber.shade900, width: 2),
+          borderRadius: replyOn
+              ? const BorderRadiusDirectional.only(
+                  bottomEnd: Radius.circular(20),
+                  bottomStart: Radius.circular(20))
+              : const BorderRadius.all(Radius.circular(20)),
+        ),
+        child: ClipRRect(
+          borderRadius: replyOn
+              ? const BorderRadiusDirectional.only(
+                  bottomEnd: Radius.circular(20),
+                  bottomStart: Radius.circular(20))
+              : const BorderRadius.all(Radius.circular(20)),
+          child: TextFormField(
+            onFieldSubmitted: onSubmit,
+            enabled: enabled,
+            textAlign: textAlign ?? TextAlign.start,
+            textAlignVertical: TextAlignVertical.center,
+            maxLength: maxLength,
+            keyboardType: type,
+            controller: controller,
+            maxLines: maxLines ?? 1,
+            onChanged: onChanged,
+            validator: (value) {
+              if (value!.isEmpty) {
+                return '$errStr is required';
+              }
+              return null;
+            },
+            obscureText: isPassword,
+            textInputAction: textInputAction,
+            decoration: InputDecoration(
+              fillColor: Colors.white,
+              counterText: '',
+              contentPadding: EdgeInsetsDirectional.symmetric(
+                horizontal: 12.0,
+                vertical: height ?? 12,
+              ),
+              hintText: (label),
+              hintStyle: TextStyle(color: Colors.amber.shade800),
+              filled: true,
+              suffixIcon: suffixIcon,
+              border: InputBorder.none,
             ),
-            hintText: (label),
-            hintStyle: const TextStyle(color: Colors.grey),
-            filled: true,
-            suffixIcon: suffixIcon,
-            border: InputBorder.none,
           ),
         ),
       );
@@ -329,6 +347,98 @@ class LoadingAlert {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class CustomSwipeItem extends StatefulWidget {
+  final Widget child;
+  final Function fun;
+  final bool isMe; // Add the isMe bool to control direction
+
+  const CustomSwipeItem({
+    super.key,
+    required this.child,
+    required this.fun,
+    required this.isMe, // Pass this from your message builder
+  });
+
+  @override
+  _CustomSwipeItemState createState() => _CustomSwipeItemState();
+}
+
+class _CustomSwipeItemState extends State<CustomSwipeItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+  double dragExtent = 0.0;
+  final double maxDragOffset = 150.0; // Maximum swipe distance
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _setSlideAnimation(); // Set swipe direction based on isMe
+  }
+
+  void _setSlideAnimation() {
+    // Swipe left (end-to-start) for user's messages, right (start-to-end) for others
+    _slideAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: widget.isMe
+          ? const Offset(-0.5, 0.0) // Swipe left for the user's message
+          : const Offset(0.5, 0.0), // Swipe right for others' messages
+    ).animate(_controller);
+  }
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      double primaryDelta = details.primaryDelta ?? 0.0;
+
+      if (widget.isMe) {
+        // User's message: Swipe left (end to start)
+        dragExtent += primaryDelta; // Negative for leftward swipe
+        if (dragExtent > -maxDragOffset && dragExtent < 0.0) {
+          _controller.value = -dragExtent / maxDragOffset;
+        }
+      } else {
+        // Others' message: Swipe right (start to end)
+        dragExtent += primaryDelta; // Positive for rightward swipe
+        if (dragExtent > 0.0 && dragExtent < maxDragOffset) {
+          _controller.value = dragExtent / maxDragOffset;
+        }
+      }
+    });
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    if (dragExtent.abs() >= maxDragOffset / 2) {
+      widget.fun(); // Trigger the swipe action
+      print("Trigger reply action");
+    }
+    // Snap back to the original position
+    _controller.reverse();
+    dragExtent = 0.0;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onHorizontalDragUpdate: _handleDragUpdate,
+      onHorizontalDragEnd: _handleDragEnd,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: widget.child,
       ),
     );
   }

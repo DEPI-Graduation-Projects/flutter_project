@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -40,7 +41,9 @@ class AppCubit extends Cubit<AppStates> {
 
   /////////////
   UserModel? currentUser;
-  Future<void> getUserData(String userId) {
+  UserModel? currentUser2;
+
+  Future<void> getUserData(String userId, bool isMe) {
     try {
       emit(GetUserDataLoadingState());
       // Listen to real-time updates from Firestore
@@ -49,7 +52,34 @@ class AppCubit extends Cubit<AppStates> {
           .where('userId', isEqualTo: userId)
           .snapshots()
           .listen((users) {
-        currentUser = UserModel.fromJson(users.docs.first.data());
+        isMe
+            ? currentUser2 = UserModel.fromJson(users.docs.first.data())
+            : currentUser = UserModel.fromJson(users.docs.first.data());
+        emit(GetUserDataSuccessState());
+      });
+    } catch (error) {
+      emit(GetUserDataFailedState());
+      print(error);
+    }
+    return Future(() => null);
+  }
+
+/////////////////
+  ///
+  List<UserModel> users = [];
+  Future<void> getallUsers() {
+    try {
+      emit(GetUserDataLoadingState());
+      // Listen to real-time updates from Firestore
+      FirebaseFirestore.instance
+          .collection("Users")
+          .where('userId', isNotEqualTo: userId)
+          .snapshots()
+          .listen((docUsers) {
+        users = docUsers.docs
+            .map((user) => UserModel.fromJson(user.data()))
+            .toList();
+
         emit(GetUserDataSuccessState());
       });
     } catch (error) {
@@ -61,7 +91,13 @@ class AppCubit extends Cubit<AppStates> {
 
   //////////////
   ///Change Screen (Navigation Bar)
-  final pages = [const MyChasts(), const UserScreen(), StoriesScreen()];
+  final screens = [
+    MyChasts(
+      userId: userId,
+    ),
+    const UserScreen(),
+    StoriesScreen()
+  ];
   int selectedIndex = 0;
   void changeScreen(index) {
     selectedIndex = index;
@@ -71,7 +107,7 @@ class AppCubit extends Cubit<AppStates> {
   /////////////////////////
   ///used in the chat screen to change the user to test chatting in one screen
   bool isMe = false;
-  String userId = "22010237";
+  static String userId = "22010237";
   void changeUserId(bool isMe, context) {
     userId = isMe ? "22010237" : "22010289";
     ScaffoldMessenger.of(context)
@@ -124,9 +160,11 @@ class AppCubit extends Cubit<AppStates> {
   Future<void> addMessage(
       {required String userId,
       required chatId,
+      replyMessage = "",
       String? message,
       required bool type,
-      String? imagaeUrl}) {
+      String? imagaeUrl,
+      required replyMessageId}) {
     String id = FirebaseFirestore.instance
         .collection('Chats')
         .doc(chatId)
@@ -145,7 +183,10 @@ class AppCubit extends Cubit<AppStates> {
       'id': id,
       'senderId': userId,
       "imagaeUrl": imagaeUrl,
-      'type': type
+      'type': type,
+      'isSeen': false,
+      'replyMessage': replyMessage,
+      'replyMessageId': replyMessageId
     }).then((value) {
       img = null;
       emit(AddMessageSuccessState());
@@ -153,6 +194,70 @@ class AppCubit extends Cubit<AppStates> {
       debugPrint(error);
     });
     return Future(() => null);
+  }
+
+///////////////
+////Set message as seen
+
+  void listenForNewMessages(String chatId, String recipientId) {
+    FirebaseFirestore.instance
+        .collection('Chats')
+        .doc(chatId)
+        .collection('Messages')
+        .where('isSeen', isEqualTo: false)
+        .where('senderId', isEqualTo: recipientId)
+        .snapshots()
+        .listen((querySnapshot) {
+      for (var doc in querySnapshot.docs) {
+        // Automatically mark messages as seen when the recipient views them
+        doc.reference.update({
+          'isSeen': true,
+        }).then((value) {
+          emit(UpdateMessageSuccessState());
+        });
+      }
+    });
+  }
+  // static bool listen = false;
+
+  // void listenForNewMessages(
+  //     String chatId, String recipientId, isChatScreenActive) {
+  //   FirebaseFirestore.instance
+  //       .collection('Chats')
+  //       .doc(chatId)
+  //       .collection('Messages')
+  //       .where('isSeen', isEqualTo: false)
+  //       .where('senderId', isEqualTo: recipientId)
+  //       .snapshots()
+  //       .listen((querySnapshot) {
+  //     if (isChatScreenActive) {
+  //       // Only mark as seen if the chat screen is active
+  //       for (var doc in querySnapshot.docs) {
+  //         // Automatically mark messages as seen when the recipient views them
+  //         doc.reference.update({
+  //           'isSeen': true,
+  //         }).then((value) {
+  //           emit(UpdateMessageSuccessState());
+  //         });
+  //       }
+  //     }
+  //   });
+  // }
+
+  //////////
+  ////Reply messages
+  bool isReplyOn = false;
+  MessageModel? replyMessage;
+  void turnReply(reply) {
+    isReplyOn = true;
+    replyMessage = reply;
+    print(isReplyOn);
+    emit(TurnReplyOnState());
+  }
+
+  void cancleReply() {
+    isReplyOn = false;
+    emit(CancleReplyState());
   }
 
   ///////////////////
@@ -184,9 +289,7 @@ class AppCubit extends Cubit<AppStates> {
     int index = messages.indexWhere((message) => message.id == messageId);
 
     if (index != -1) {
-      // If the message is found, update its isSelected value
-      messages[index].isSelected =
-          !messages[index].isSelected; // Change to true or toggle if needed
+      messages[index].isSelected = !messages[index].isSelected;
     } else {
       print("Message with ID $messageId not found.");
     }
@@ -243,7 +346,13 @@ class AppCubit extends Cubit<AppStates> {
                 lastMessage: message)
             .toMap())
         .then((onValue) {
-      addMessage(userId: userId, chatId: id, type: false, message: message);
+      addMessage(
+          userId: userId,
+          chatId: id,
+          type: false,
+          message: message,
+          replyMessage: "",
+          replyMessageId: "");
       emit(CreateChatSuccessState());
     }).catchError((onError) {
       emit(CreateChatFailState());
@@ -260,10 +369,10 @@ class AppCubit extends Cubit<AppStates> {
   }) {
     emit(UpdateChatWallpapperLoadingState());
 
-    Map<String, dynamic> newWallpaper = {chatId: wallpaperUrl};
+    // Map<String, dynamic> newWallpaper = {chatId: wallpaperUrl};
 
-    FirebaseFirestore.instance.collection('Users').doc("22010237").update({
-      'chatWallpapers': FieldValue.arrayUnion([newWallpaper]),
+    FirebaseFirestore.instance.collection('Users').doc(userId).update({
+      'chatWallpapers.$chatId': wallpaperUrl,
     }).then((onValue) {
       currentWallpaper = wallpaperUrl;
       emit(UpdateChatWallpapperSuccessState(chatWallpaperUrl: wallpaperUrl));
@@ -316,7 +425,7 @@ class AppCubit extends Cubit<AppStates> {
 
   /////////////////////////////
   /// undo method
-  bool cancleDeletion = false;
+  bool delete = true;
   void deleteChat({required String chatId}) {
     FirebaseFirestore.instance
         .collection('Chats')
@@ -330,7 +439,7 @@ class AppCubit extends Cubit<AppStates> {
   ////////////////////
   ///undo method
   void tempDelete(index) {
-    messages.removeAt(index);
+    chats.removeAt(index);
     emit(TempDeleteState());
   }
 }

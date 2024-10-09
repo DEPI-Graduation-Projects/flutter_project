@@ -62,3 +62,9 @@ class UpdateChatWallpapperSuccessState extends AppStates {
 }
 
 class UpdateChatWallpapperFailedState extends AppStates {}
+
+class UpdateMessageSuccessState extends AppStates {}
+
+class TurnReplyOnState extends AppStates {}
+
+class CancleReplyState extends AppStates {}

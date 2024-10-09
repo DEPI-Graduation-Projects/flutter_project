@@ -8,7 +8,8 @@ import 'package:flutter_project/screens/chats/chat_screen/chat_screen.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class MyChasts extends StatefulWidget {
-  const MyChasts({super.key});
+  MyChasts({required this.userId, super.key});
+  String userId;
 
   @override
   State<MyChasts> createState() => _MyChastsState();
@@ -23,8 +24,8 @@ class _MyChastsState extends State<MyChasts> {
   void initState() {
     super.initState();
     final AppCubit cubb = AppCubit.get(context);
-    cubb.getUserData("22010237");
-    cubb.getMyChats(userId: "22010237");
+    cubb.getUserData(widget.userId, true);
+    cubb.getMyChats(userId: widget.userId);
   }
 
   @override
@@ -61,7 +62,7 @@ class _MyChastsState extends State<MyChasts> {
                       onSave: () async {
                         if (await InternetConnectionChecker().hasConnection) {
                           cubb.createChat(
-                              userId: "22010237",
+                              userId: AppCubit.userId,
                               receiverId: addUserChatController.text,
                               message: messageController.text);
                         } else {
@@ -69,19 +70,31 @@ class _MyChastsState extends State<MyChasts> {
                         }
                       },
                       onCancel: () {
+                        addUserChatController.clear();
+                        messageController.clear();
                         Navigator.pop(context);
                       }));
               debugPrint('Add');
+              print(widget.userId);
+              // cubb.getUserData(AppCubit.userId, true);
+              // cubb.getMyChats(userId: AppCubit.userId);
             }),
-        body: ListView.builder(
-          itemBuilder: (context, index) {
-            return ChatItem(
-              state: state,
-              index: index,
-              chat: cubb.chats[index],
-            );
+        body: RefreshIndicator(
+          onRefresh: () {
+            print(widget.userId);
+            cubb.getUserData(AppCubit.userId, true);
+            cubb.getMyChats(userId: AppCubit.userId);
+            return Future(() => null);
           },
-          itemCount: cubb.chats.length,
+          child: ListView.builder(
+            itemBuilder: (context, index) {
+              return ChatItem(
+                index: index,
+                chat: cubb.chats[index],
+              );
+            },
+            itemCount: cubb.chats.length,
+          ),
         ),
       ),
     );
@@ -91,20 +104,15 @@ class _MyChastsState extends State<MyChasts> {
 class ChatItem extends StatelessWidget {
   final ChatModel chat;
   final int index;
-  final state;
-  const ChatItem(
-      {required this.chat,
-      required this.index,
-      required this.state,
-      super.key});
+  const ChatItem({required this.chat, required this.index, super.key});
 
   @override
   Widget build(BuildContext context) {
     AppCubit cubb = AppCubit.get(context);
+    String userId = chat.usersIds.firstWhere((id) => id != AppCubit.userId);
     return Dismissible(
       key: Key(chat.usersIds[1]),
       onDismissed: (direction) {
-        // Show the SnackBar and allow undo action
         ScaffoldMessenger.of(context)
             .showSnackBar(
               SnackBar(
@@ -114,14 +122,12 @@ class ChatItem extends StatelessWidget {
                     const Spacer(),
                     TextButton(
                       onPressed: () {
-                        // Restore the chat when Undo is pressed
-                        cubb.getMyChats(
-                            userId:
-                                "22010237"); // Fetch chats again or restore from temporary storage
+                        cubb.getMyChats(userId: AppCubit.userId);
                         ScaffoldMessenger.of(context)
                             .hideCurrentSnackBar(); // Dismiss the SnackBar
-                        cubb.cancleDeletion =
-                            true; // Mark that deletion has been canceled
+                        cubb.delete =
+                            false; // Mark that delete has been canceled
+                        print('Hager After Undo ${cubb.delete}');
                       },
                       child: const Text("Undo"),
                     ),
@@ -132,24 +138,24 @@ class ChatItem extends StatelessWidget {
             )
             .closed
             .then((reason) async {
-          // After the SnackBar disappears, delete the chat unless it was restored
           if (await InternetConnectionChecker().hasConnection) {
-            if (!cubb.cancleDeletion) {
+            if (cubb.delete) {
               cubb.deleteChat(chatId: chat.chatId); // Delete chat from Firebase
             } else {
-              cubb.cancleDeletion = false; // Reset the cancel flag
+              cubb.delete = true; // Reset the cancel flag
             }
           } else {
-            debugPrint("No connection");
+            //true
+            debugPrint(" No connection");
           }
 
-          // Now that the SnackBar is closed, safely remove the item from the list
+          print('Hager cancle deletion default value is ${cubb.delete}');
+
           cubb.tempDelete(index); // Remove the item from the list
         });
       },
       background: Container(
         color: Colors.red, // Color shown when swiped
-        alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: const Align(
             alignment: AlignmentDirectional.centerEnd,
@@ -158,17 +164,14 @@ class ChatItem extends StatelessWidget {
       direction: DismissDirection.endToStart,
       child: GestureDetector(
         onTap: () {
-          print('users chat wallpaper  ${cubb.currentUser!.chatWallpapers}');
-          print('chat id ${chat.chatId}');
-          print('chat id ${chat.chatId}');
-          for (var wallpapers in cubb.currentUser!.chatWallpapers) {
-            if (wallpapers.containsKey(chat.chatId)) {
-              cubb.currentWallpaper = wallpapers[chat.chatId];
-              print('chat current wallpaper ${cubb.currentWallpaper}');
-            }
+          cubb.currentWallpaper =
+              "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain";
+          if (cubb.currentUser2!.chatWallpapers.containsKey(chat.chatId)) {
+            cubb.currentWallpaper =
+                cubb.currentUser2!.chatWallpapers[chat.chatId];
           }
-          String userId = chat.usersIds.firstWhere((id) => id != "22010237");
-          cubb.getUserData(userId).then((value) {
+
+          cubb.getUserData(userId, false).then((value) {
             Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -182,11 +185,11 @@ class ChatItem extends StatelessWidget {
         child: Card(
           child: ListTile(
             leading: const CircleAvatar(
-              backgroundColor: Colors.black,
               radius: 30,
+              child: Icon(Icons.person),
             ),
             title: Text(
-              chat.usersIds[1],
+              userId,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             subtitle: Text(
