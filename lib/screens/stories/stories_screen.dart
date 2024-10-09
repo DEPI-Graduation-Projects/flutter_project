@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
 import 'package:flutter_project/screens/stories/story_view.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../data/user_story.dart';
 
@@ -46,9 +45,9 @@ class StoriesScreen extends StatelessWidget {
                   child: state is GetStoriesLoadingState
                       ? const Center(child: CircularProgressIndicator())
                       : state is GetStoriesSuccessState &&
-                      cubit.stories.isNotEmpty
-                      ? _buildStoriesGrid(context, cubit)
-                      : const Center(child: Text('No stories available')),
+                              cubit.stories.isNotEmpty
+                          ? _buildStoriesGrid(context, cubit)
+                          : const Center(child: Text('No stories available')),
                 ),
               ],
             );
@@ -71,7 +70,7 @@ class StoriesScreen extends StatelessWidget {
       stories.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     });
 
-    final currentUserId = cubit.userId;
+    final currentUserId = AppCubit.userId;
     final userIds = groupedStories.keys.toList()
       ..remove(currentUserId)
       ..insert(0, currentUserId);
@@ -94,7 +93,8 @@ class StoriesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUserStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userStories, String userId) {
+  Widget _buildUserStoryCard(BuildContext context, AppCubit cubit,
+      List<UserStory> userStories, String userId) {
     final lastStory = userStories.first;
 
     return GestureDetector(
@@ -137,7 +137,10 @@ class StoriesScreen extends StatelessWidget {
                 child: Text(
                   // cubit.getUserName(userId).toString(),
                   cubit.currentUser?.name ?? 'Unknown',
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -150,7 +153,8 @@ class StoriesScreen extends StatelessWidget {
                 backgroundColor: Colors.blue,
                 child: Text(
                   '${userStories.length}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -161,10 +165,9 @@ class StoriesScreen extends StatelessWidget {
   }
 
   Widget _buildAddStoryCard(BuildContext context, AppCubit cubit) {
-
     return GestureDetector(
       onTap: () {
-          cubit.pickAndUploadStoryImage(cubit.userId);
+        cubit.pickAndUploadStoryImage(AppCubit.userId);
       },
       child: Card(
         shape: RoundedRectangleBorder(
@@ -193,7 +196,10 @@ class StoriesScreen extends StatelessWidget {
                 padding: EdgeInsets.only(bottom: 8),
                 child: Text(
                   'Add Story',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
               ),

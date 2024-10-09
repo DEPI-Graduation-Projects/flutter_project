@@ -121,7 +121,7 @@ class AppCubit extends Cubit<AppStates> {
 
   ////////////
   ///Change Screen (Navigation Bar)
-  final pages = [
+  final screens = [
     MyChasts(
       userId: userId,
     ),
@@ -607,11 +607,11 @@ class AppCubit extends Cubit<AppStates> {
     });
   }
 
-  Map<String, UserModel> users = {};
+  Map<String, UserModel> usersList = {};
   List<User> getUsersWithStories() {
     Set<String> userIds = stories.map((story) => story.userId).toSet();
     return userIds
-        .map((userId) => users[userId])
+        .map((userId) => usersList[userId])
         .where((user) => user != null)
         .cast<User>()
         .toList();
