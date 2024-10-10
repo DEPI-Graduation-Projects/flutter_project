@@ -15,13 +15,15 @@ import 'package:flutter_project/screens/stories/stories_screen.dart';
 import 'package:flutter_project/screens/user/user_screen/user_screen.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../data/user_story.dart';
+import '../models/stories_model.dart';
 import 'app_states.dart';
 
 class AppCubit extends Cubit<AppStates> {
   AppCubit() : super(AppInitState());
 
   static AppCubit get(BuildContext context) => BlocProvider.of(context);
+
+  Map<String, String> userNames = {};
 
 ///////////////////////
 
@@ -70,6 +72,24 @@ class AppCubit extends Cubit<AppStates> {
     return Future(() => null);
   }
 
+  void fetchAllUserNames() async {
+    try {
+      var querySnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .get();
+
+      for (var doc in querySnapshot.docs) {
+        String userId = doc['userId'];
+        String userName = doc['name'];
+        userNames[userId] = userName;
+      }
+      emit(GetUserDataSuccessState());
+    } catch (error) {
+      print('Error fetching user data: $error');
+      emit(GetUserDataFailedState());
+    }
+  }
+
 /////////////////
   ///
   List<UserModel> users = [];
@@ -95,30 +115,6 @@ class AppCubit extends Cubit<AppStates> {
     return Future(() => null);
   }
 
-  Future<String> getUserName(String userId) async {
-    try {
-      emit(GetUserDataLoadingState());
-
-      final snapshot = await FirebaseFirestore.instance
-          .collection("Users")
-          .where('userId', isEqualTo: userId)
-          .get();
-
-      if (snapshot.docs.isNotEmpty) {
-        final userModel = UserModel.fromJson(snapshot.docs[1].data());
-        emit(GetUserDataSuccessState());
-        return userModel.name;
-      } else {
-        emit(GetUserDataFailedState());
-        return 'Unknown';
-      }
-    } catch (error) {
-      emit(GetUserDataFailedState());
-      print(error);
-      return error.toString();
-    }
-  }
-
   ////////////
   ///Change Screen (Navigation Bar)
   final screens = [
@@ -138,7 +134,7 @@ class AppCubit extends Cubit<AppStates> {
   /////////////////////////
   ///used in the chat screen to change the user to test chatting in one screen
   bool isMe = false;
-  static String userId = "22010237";
+  static String userId = "22010289";
   void changeUserId(bool isMe, context) {
     userId = isMe ? "22010237" : "22010289";
     ScaffoldMessenger.of(context)
@@ -534,10 +530,7 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   ///Add Story to Firestore
-  Future<void> addStory(
-      {required String userId,
-      required String storyId,
-      required String imageUrl}) async {
+  Future<void> addStory({required String userId, required String storyId, required String imageUrl}) async {
     emit(AddStoryLoadingState());
 
     try {
@@ -555,6 +548,8 @@ class AppCubit extends Cubit<AppStates> {
         'timeStamp': userStory.timeStamp.toIso8601String(),
       });
 
+      autoDeleteStoryTime(storyId: storyId);
+
       emit(AddStorySuccessState());
     } catch (e) {
       emit(AddStoryFailedState());
@@ -562,17 +557,16 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
+  /// delete Story
   Future<void> deleteStory({required String storyId}) async {
     emit(DeleteStoryLoadingState());
 
     try {
-      // Delete story metadata from Firestore
       await FirebaseFirestore.instance
           .collection('stories')
           .doc(storyId)
           .delete();
 
-      // Delete story image from Firebase Storage
       await FirebaseStorage.instance.ref().child('stories/$storyId').delete();
 
       emit(DeleteStorySuccessState());
@@ -582,6 +576,46 @@ class AppCubit extends Cubit<AppStates> {
       print("Error deleting story from Firestore: $e");
     }
   }
+
+  /// auto delete Story after 24 hr
+  Future<void> autoDeleteStoryTime({required String storyId}) async {
+    Future.delayed(const Duration(hours: 24), () => autoDeleteStory(storyId));
+  }
+
+  Future<void> autoDeleteStory(String storyId) async{
+
+    try{
+      DocumentSnapshot storyDoc = await FirebaseFirestore.instance
+          .collection('stories')
+          .doc(storyId)
+          .get();
+
+      if(storyDoc.exists){
+        Map<String, dynamic> data = storyDoc.data() as Map<String, dynamic>;
+        DateTime creation = DateTime.parse(data['timeStamp']);
+
+        if(DateTime.now().difference(creation).inHours >= 24){
+
+          await FirebaseFirestore.instance
+              .collection('stories')
+              .doc(storyId)
+              .delete();
+
+          await FirebaseStorage.instance.ref().child('stories/$storyId').delete();
+
+          emit(DeleteStorySuccessState());
+          getStories();
+        }else{
+          Duration timeRemaining = Duration(hours: 24) - DateTime.now().difference(creation);
+          Future.delayed(timeRemaining, autoDeleteStoryTime(storyId: storyId) as FutureOr Function()?);
+        }
+      }
+    }catch(e){
+      emit(DeleteStoryFailedState());
+      print("Error auto-deleting story from Firestore: $e");
+    }
+  }
+
 
   /// Get All Stories
   List<UserStory> stories = [];
@@ -633,4 +667,6 @@ class AppCubit extends Cubit<AppStates> {
   //     emit(UploadStoryImageFailedState());
   //   });
   // }
+
+
 }

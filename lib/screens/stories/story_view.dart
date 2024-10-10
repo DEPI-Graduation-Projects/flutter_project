@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../cubit/app_cubit.dart';
 import '../../cubit/app_states.dart';
-import '../../data/user_story.dart';
+import '../../models/stories_model.dart';
 
 class StoryView extends StatefulWidget {
   final List<UserStory> stories;
@@ -44,23 +44,23 @@ class _StoryViewState extends State<StoryView> {
       _progressList[_currentIndex] = 0.0;
     });
 
-    Future.delayed(Duration.zero, () {
-      TweenAnimationBuilder(
-        tween: Tween<double>(begin: 0, end: 1),
-        duration: _storyDuration,
-        builder: (context, value, child) {
-          setState(() {
-            _progressList[_currentIndex] = value;
-          });
-
-          if (value == 1.0) {
-            _goToNextStory();
-          }
-
-          return SizedBox();
-        },
-      );
-    });
+    // Future.delayed(Duration.zero, () {
+    //   TweenAnimationBuilder(
+    //     tween: Tween<double>(begin: 0, end: 1),
+    //     duration: _storyDuration,
+    //     builder: (context, value, child) {
+    //       setState(() {
+    //         _progressList[_currentIndex] = value;
+    //       });
+    //
+    //       if (value == 1.0) {
+    //         _goToNextStory();
+    //       }
+    //
+    //       return SizedBox();
+    //     },
+    //   );
+    // });
   }
 
   void _goToNextStory() {
@@ -131,7 +131,7 @@ class _StoryViewState extends State<StoryView> {
                         });
                       },
                       itemBuilder: (context, index) {
-                        int storyIndex = widget.stories.length - 1 - index;
+                        int storyIndex = index;
                         return Stack(
                           fit: StackFit.expand,
                           children: [
@@ -149,7 +149,8 @@ class _StoryViewState extends State<StoryView> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 15.0, vertical: 10),
                                 child: Text(
-                                  '${cubit.currentUser?.name}\'s Story',
+                                  widget.stories[_currentIndex].userId == AppCubit.userId? 'My Story' :
+                                  '${cubit.userNames[widget.stories[_currentIndex].userId]}\'s Story',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 24,
@@ -175,7 +176,7 @@ class _StoryViewState extends State<StoryView> {
                             padding:
                             const EdgeInsets.symmetric(horizontal: 2.0),
                             child: LinearProgressIndicator(
-                              value: _progressList[widget.stories.length - 1 - index],
+                              value: _progressList[index],
                               backgroundColor: index >= _currentIndex
                                   ? Colors.grey
                                   : Colors.blue,
@@ -188,15 +189,16 @@ class _StoryViewState extends State<StoryView> {
                   ],
                 ),
               ),
-              floatingActionButton: IconButton(
+              floatingActionButton: widget.stories[_currentIndex].userId == AppCubit.userId ? FloatingActionButton(
+                backgroundColor: Colors.blue,
                 onPressed: () {
-                  cubit.deleteStory(storyId: widget.stories[widget.stories.length - 1 - _currentIndex].id);
+                  cubit.deleteStory(storyId: widget.stories[_currentIndex].id);
                 },
-                icon: state is DeleteStoryLoadingState
+                child: state is DeleteStoryLoadingState
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Icon(Icons.delete,
-                    color: Colors.blue,
-                    size: 40,
+                    color: Colors.white,
+                    size: 30,
                     shadows: [
                       Shadow(
                         blurRadius: 50.0,
@@ -204,7 +206,7 @@ class _StoryViewState extends State<StoryView> {
                         offset: Offset(2.0, 2.0),
                       ),
                     ]),
-              ),
+              ) : SizedBox.shrink(),
             );
           },
         ),

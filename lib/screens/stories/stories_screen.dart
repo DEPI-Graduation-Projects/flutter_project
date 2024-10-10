@@ -4,7 +4,7 @@ import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
 import 'package:flutter_project/screens/stories/story_view.dart';
 
-import '../../data/user_story.dart';
+import '../../models/stories_model.dart';
 
 class StoriesScreen extends StatelessWidget {
   const StoriesScreen({super.key});
@@ -12,7 +12,7 @@ class StoriesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AppCubit()..getStories(),
+      create: (context) => AppCubit()..getStories()..fetchAllUserNames(),
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -35,7 +35,7 @@ class StoriesScreen extends StatelessWidget {
               );
               AppCubit.get(context).getStories();
             }
-          },
+            },
           builder: (context, state) {
             var cubit = AppCubit.get(context);
 
@@ -45,9 +45,9 @@ class StoriesScreen extends StatelessWidget {
                   child: state is GetStoriesLoadingState
                       ? const Center(child: CircularProgressIndicator())
                       : state is GetStoriesSuccessState &&
-                              cubit.stories.isNotEmpty
-                          ? _buildStoriesGrid(context, cubit)
-                          : const Center(child: Text('No stories available')),
+                      cubit.stories.isNotEmpty
+                      ? _buildStoriesGrid(context, cubit)
+                      : const Center(child: Text('No stories available')),
                 ),
               ],
             );
@@ -80,34 +80,39 @@ class StoriesScreen extends StatelessWidget {
         crossAxisCount: 2,
         childAspectRatio: 0.75,
       ),
-      itemCount: userIds.length + 1,
+      itemCount: userIds.length,
       itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildAddStoryCard(context, cubit);
-        } else {
-          final userId = userIds[index - 1];
-          final userStories = groupedStories[userId]!;
-          return _buildUserStoryCard(context, cubit, userStories, userId);
-        }
+        final userId = userIds[index];
+        final userStories = groupedStories[userId] ?? [];
+        final isCurrentUser = userId == currentUserId;
+        return _buildUserStoryCard(context, cubit, userStories, userId, isCurrentUser);
       },
     );
   }
 
   Widget _buildUserStoryCard(BuildContext context, AppCubit cubit,
-      List<UserStory> userStories, String userId) {
-    final lastStory = userStories.first;
+      List<UserStory> userStories, String userId, bool isCurrentUser) {
+    if (isCurrentUser && userStories.isEmpty) {
+      return _buildAddStoryCard(context, cubit);
+    }
+
+    final lastStory = userStories.isNotEmpty ? userStories.last : null;
 
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => StoryView(
-              stories: userStories,
-              initialIndex: 0,
+        if (userStories.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => StoryView(
+                stories: userStories,
+                initialIndex: 0,
+              ),
             ),
-          ),
-        );
+          );
+        } else if (isCurrentUser) {
+          cubit.pickAndUploadStoryImage(AppCubit.userId);
+        }
       },
       child: Card(
         shape: RoundedRectangleBorder(
@@ -119,7 +124,8 @@ class StoriesScreen extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: ColorFiltered(
+              child: lastStory != null
+                  ? ColorFiltered(
                 colorFilter: ColorFilter.mode(
                   Colors.black.withOpacity(0.5),
                   BlendMode.darken,
@@ -128,15 +134,15 @@ class StoriesScreen extends StatelessWidget {
                   lastStory.imgURL,
                   fit: BoxFit.cover,
                 ),
-              ),
+              )
+                  : _buildUserContent(cubit),
             ),
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  // cubit.getUserName(userId).toString(),
-                  cubit.currentUser?.name ?? 'Unknown',
+                  isCurrentUser ? 'Your Story' : (cubit.userNames[userId] ?? 'No name found'),
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -145,19 +151,35 @@ class StoriesScreen extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              right: 8,
-              top: 8,
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.blue,
-                child: Text(
-                  '${userStories.length}',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+            if (userStories.isNotEmpty)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.blue,
+                  child: Text(
+                    '${userStories.length}',
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
-            ),
+            if (isCurrentUser && userStories.isNotEmpty)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: GestureDetector(
+                  onTap: (){
+                    cubit.pickAndUploadStoryImage(AppCubit.userId);
+                  },
+                  child: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.blue,
+                    child: Icon(Icons.add, color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -183,7 +205,7 @@ class StoriesScreen extends StatelessWidget {
             ),
             const Positioned(
               right: 8,
-              top: 15,
+              top: 8,
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.blue,
