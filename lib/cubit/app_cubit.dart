@@ -24,6 +24,7 @@ class AppCubit extends Cubit<AppStates> {
   static AppCubit get(BuildContext context) => BlocProvider.of(context);
 
   Map<String, String> userNames = {};
+  static const int storyExpirationDuration = 24 * 60 * 60 * 1000;
 
 ///////////////////////
 
@@ -134,7 +135,7 @@ class AppCubit extends Cubit<AppStates> {
   /////////////////////////
   ///used in the chat screen to change the user to test chatting in one screen
   bool isMe = false;
-  static String userId = "22010289";
+  static String userId = "22010237";
   void changeUserId(bool isMe, context) {
     userId = isMe ? "22010237" : "22010289";
     ScaffoldMessenger.of(context)
@@ -548,7 +549,7 @@ class AppCubit extends Cubit<AppStates> {
         'timeStamp': userStory.timeStamp.toIso8601String(),
       });
 
-      autoDeleteStoryTime(storyId: storyId);
+      // scheduleStoryDeletion(storyId);
 
       emit(AddStorySuccessState());
     } catch (e) {
@@ -577,69 +578,69 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
-  /// auto delete Story after 24 hr
-  Future<void> autoDeleteStoryTime({required String storyId}) async {
-    Future.delayed(const Duration(hours: 24), () => autoDeleteStory(storyId));
-  }
-
-  Future<void> autoDeleteStory(String storyId) async{
-
-    try{
-      DocumentSnapshot storyDoc = await FirebaseFirestore.instance
-          .collection('stories')
-          .doc(storyId)
-          .get();
-
-      if(storyDoc.exists){
-        Map<String, dynamic> data = storyDoc.data() as Map<String, dynamic>;
-        DateTime creation = DateTime.parse(data['timeStamp']);
-
-        if(DateTime.now().difference(creation).inHours >= 24){
-
-          await FirebaseFirestore.instance
-              .collection('stories')
-              .doc(storyId)
-              .delete();
-
-          await FirebaseStorage.instance.ref().child('stories/$storyId').delete();
-
-          emit(DeleteStorySuccessState());
-          getStories();
-        }else{
-          Duration timeRemaining = Duration(hours: 24) - DateTime.now().difference(creation);
-          Future.delayed(timeRemaining, autoDeleteStoryTime(storyId: storyId) as FutureOr Function()?);
-        }
-      }
-    }catch(e){
-      emit(DeleteStoryFailedState());
-      print("Error auto-deleting story from Firestore: $e");
-    }
-  }
-
 
   /// Get All Stories
   List<UserStory> stories = [];
 
   void getStories() {
     emit(GetStoriesLoadingState());
-    FirebaseFirestore.instance
-        .collection('stories')
-        .orderBy('timeStamp', descending: true)
-        .snapshots()
-        .listen((snapshot) {
-      stories = snapshot.docs.map((doc) {
-        final timestamp = doc['timeStamp'];
-        DateTime timeStampDateTime =
-            timestamp is Timestamp ? timestamp.toDate() : DateTime.now();
-        return UserStory(
-            id: doc['id'] ?? '',
-            userId: doc['userId'] ?? '',
-            imgURL: doc['imgURL'] ?? '',
-            timeStamp: timeStampDateTime);
-      }).toList();
-      emit(GetStoriesSuccessState());
-    });
+    deleteExpiredStoriesFromBackend();
+
+    try{
+      FirebaseFirestore.instance
+          .collection('stories')
+          .orderBy('timeStamp', descending: true)
+          .snapshots()
+          .listen((snapshot) {
+        stories = snapshot.docs.map((doc) {
+          final timestampString = doc['timeStamp'] as String;
+          DateTime timeStampDateTime = DateTime.parse(timestampString);
+          return UserStory(
+              id: doc['id'] ?? '',
+              userId: doc['userId'] ?? '',
+              imgURL: doc['imgURL'] ?? '',
+              timeStamp: timeStampDateTime);
+        }).toList();
+        emit(GetStoriesSuccessState());
+
+        deleteExpiredStoriesFromBackend();
+      });
+    }catch(e){
+      emit(GetStoriesErrorState(e.toString()));
+    }
   }
+
+  // auto delete Story after 24 hr
+  void deleteExpiredStoriesFromBackend() {
+    print('Checking for expired stories...');
+    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    print('Current time in milliseconds: $currentTime');
+
+    for (var story in List.from(stories)) {
+      final storyTimeStampInMillis = story.timeStamp.millisecondsSinceEpoch;
+      final storyAge = currentTime - storyTimeStampInMillis;
+
+      print('Story ID: ${story.id}, Age: $storyAge');
+
+      if (storyAge >= storyExpirationDuration) {
+        FirebaseFirestore.instance
+            .collection('stories')
+            .doc(story.id)
+            .delete()
+            .then((_) {
+          print('Successfully deleted story: ${story.id}');
+        }).catchError((error) {
+          print('Failed to delete story: $error');
+        });
+        FirebaseStorage.instance.ref().child('stories/${story.id}').delete().then((_) {
+          print('Successfully deleted story: ${story.id}');
+        }).catchError((error) {
+          print('Failed to delete story: $error');
+        });
+      }
+    }
+  }
+
 
   Map<String, UserModel> usersList = {};
   List<User> getUsersWithStories() {
