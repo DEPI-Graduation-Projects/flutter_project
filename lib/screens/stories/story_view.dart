@@ -1,8 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-
 import '../../cubit/app_cubit.dart';
-import '../../cubit/app_states.dart';
 import '../../models/stories_model.dart';
 
 class StoryView extends StatefulWidget {
@@ -12,15 +10,17 @@ class StoryView extends StatefulWidget {
   const StoryView({super.key, required this.stories, this.initialIndex = 0});
 
   @override
-  _StoryViewState createState() => _StoryViewState();
+  StoryViewState createState() => StoryViewState();
 }
 
-class _StoryViewState extends State<StoryView> {
+class StoryViewState extends State<StoryView> {
   late PageController _pageController;
   late int _currentIndex;
   bool _showUserName = true;
   final Duration _storyDuration = const Duration(seconds: 5);
   late List<double> _progressList;
+  Timer? _timer;
+  bool _isLoading = true; // Loading state
 
   @override
   void initState() {
@@ -28,46 +28,41 @@ class _StoryViewState extends State<StoryView> {
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
 
-    _progressList = List<double>.filled(widget.stories.length, 0.0);
+    // Simulate loading time
+    Future.delayed(const Duration(seconds: 1), () {
+      setState(() {
+        _isLoading = false;
+      });
+    });
 
+    _progressList = List<double>.filled(widget.stories.length, 0.0);
     _startProgress();
   }
 
   @override
   void dispose() {
+    _timer?.cancel(); // Cancel the timer
     _pageController.dispose();
     super.dispose();
   }
 
   void _startProgress() {
     setState(() {
-      _progressList[_currentIndex] = 0.0;
+      _progressList[_currentIndex] = 0.0; // Reset progress for current story
     });
 
-    // Future.delayed(Duration.zero, () {
-    //   TweenAnimationBuilder(
-    //     tween: Tween<double>(begin: 0, end: 1),
-    //     duration: _storyDuration,
-    //     builder: (context, value, child) {
-    //       setState(() {
-    //         _progressList[_currentIndex] = value;
-    //       });
-    //
-    //       if (value == 1.0) {
-    //         _goToNextStory();
-    //       }
-    //
-    //       return SizedBox();
-    //     },
-    //   );
-    // });
+    _timer = Timer(_storyDuration, () {
+      if (mounted) {
+        _goToNextStory(); // Only call if mounted
+      }
+    });
   }
 
   void _goToNextStory() {
     if (_currentIndex < widget.stories.length - 1) {
       setState(() {
         _currentIndex++;
-        _startProgress();
+        _startProgress(); // Restart progress for the next story
       });
 
       _pageController.nextPage(
@@ -75,141 +70,106 @@ class _StoryViewState extends State<StoryView> {
         curve: Curves.easeInOut,
       );
     } else {
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.of(context).maybePop();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: BlocProvider(
-        create: (context) => AppCubit(),
-        child: BlocConsumer<AppCubit, AppStates>(
-          listener: (context, state) {
-            if (state is DeleteStorySuccessState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Story deleted successfully!')),
-              );
-              if (widget.stories.length > 1) {
-                setState(() {
-                  widget.stories.removeAt(_currentIndex);
-                  if (_currentIndex > 0) _currentIndex--;
-                });
-              } else {
-                Navigator.pop(context);
-              }
-            } else if (state is DeleteStoryFailedState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Failed to delete story!')),
-              );
+      child: Scaffold(
+        body: GestureDetector(
+          onTap: () => _goToNextStory(),
+          onLongPress: () {
+            setState(() {
+              _showUserName = !_showUserName;
+            });
+          },
+          onVerticalDragEnd: (details) {
+            if (details.velocity.pixelsPerSecond.dy > 0) {
+              Navigator.pop(context);
             }
           },
-          builder: (context, state) {
-            var cubit = AppCubit.get(context);
-            return Scaffold(
-              body: GestureDetector(
-                onTap: () => _goToNextStory(),
-                onLongPress: () {
+          child: Stack(
+            children: [
+              _isLoading
+                  ? const Center(
+                child: CircularProgressIndicator(),
+              )
+                  : PageView.builder(
+                controller: _pageController,
+                itemCount: widget.stories.length,
+                onPageChanged: (index) {
                   setState(() {
-                    _showUserName = !_showUserName;
+                    _currentIndex = index;
+                    _startProgress(); // Restart progress on page change
                   });
                 },
-                onVerticalDragEnd: (details) {
-                  if (details.velocity.pixelsPerSecond.dy > 0) {
-                    Navigator.pop(context);
-                  }
-                },
-                child: Stack(
-                  children: [
-                    PageView.builder(
-                      controller: _pageController,
-                      itemCount: widget.stories.length,
-                      onPageChanged: (index) {
-                        setState(() {
-                          _currentIndex = index;
-                          _startProgress();
-                        });
-                      },
-                      itemBuilder: (context, index) {
-                        int storyIndex = index;
-                        return Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                image: DecorationImage(
-                                  image: NetworkImage(
-                                      widget.stories[storyIndex].imgURL),
-                                  fit: BoxFit.cover,
+                itemBuilder: (context, index) {
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: NetworkImage(widget.stories[index].imgURL),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      if (_showUserName)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10),
+                          child: Text(
+                            widget.stories[index].userId == AppCubit.userId
+                                ? 'My Story'
+                                : '${AppCubit.get(context).userNames[widget.stories[index].userId]}\'s Story',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  blurRadius: 10.0,
+                                  color: Colors.black,
+                                  offset: Offset(2.0, 2.0),
                                 ),
-                              ),
-                            ),
-                            if (_showUserName)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 15.0, vertical: 10),
-                                child: Text(
-                                  widget.stories[_currentIndex].userId == AppCubit.userId? 'My Story' :
-                                  '${cubit.userNames[widget.stories[_currentIndex].userId]}\'s Story',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    shadows: [
-                                      Shadow(
-                                        blurRadius: 10.0,
-                                        color: Colors.black,
-                                        offset: Offset(2.0, 2.0),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                    Row(
-                      children: List.generate(widget.stories.length, (index) {
-                        return Expanded(
-                          child: Padding(
-                            padding:
-                            const EdgeInsets.symmetric(horizontal: 2.0),
-                            child: LinearProgressIndicator(
-                              value: _progressList[index],
-                              backgroundColor: index >= _currentIndex
-                                  ? Colors.grey
-                                  : Colors.blue,
-                              minHeight: 4,
+                              ],
                             ),
                           ),
-                        );
-                      }),
-                    ),
-                  ],
-                ),
-              ),
-              floatingActionButton: widget.stories[_currentIndex].userId == AppCubit.userId ? FloatingActionButton(
-                backgroundColor: Colors.blue,
-                onPressed: () {
-                  cubit.deleteStory(storyId: widget.stories[_currentIndex].id);
+                        ),
+                    ],
+                  );
                 },
-                child: state is DeleteStoryLoadingState
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Icon(Icons.delete,
-                    color: Colors.white,
-                    size: 30,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 50.0,
-                        color: Colors.grey,
-                        offset: Offset(2.0, 2.0),
+              ),
+              Row(
+                children: List.generate(widget.stories.length, (index) {
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                      child: LinearProgressIndicator(
+                        value: _progressList[index],
+                        backgroundColor: index >= _currentIndex ? Colors.grey : Colors.blue,
+                        minHeight: 4,
                       ),
-                    ]),
-              ) : SizedBox.shrink(),
-            );
-          },
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
         ),
+        floatingActionButton: widget.stories[_currentIndex].userId == AppCubit.userId
+            ? FloatingActionButton(
+          backgroundColor: Colors.blue,
+          onPressed: () {
+            AppCubit.get(context).deleteStory(storyId: widget.stories[_currentIndex].id);
+          },
+          child: const Icon(Icons.delete, color: Colors.white, size: 30),
+        )
+            : const SizedBox.shrink(),
       ),
     );
   }
