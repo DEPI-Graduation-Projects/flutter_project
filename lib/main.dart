@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
 import 'package:flutter_project/screens/stories/stories_screen.dart';
+import 'package:get/get_navigation/src/root/get_material_app.dart';
 
 import 'firebase_options.dart';
 
@@ -25,7 +26,7 @@ class MyApp extends StatelessWidget {
       create: (context) => AppCubit(),
       child: BlocBuilder<AppCubit, AppStates>(
         builder: (context, state) {
-          return const MaterialApp(
+          return const GetMaterialApp(
             debugShowCheckedModeBanner: false,
             home: StoriesScreen(),
           );

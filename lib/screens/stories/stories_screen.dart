@@ -32,6 +32,20 @@ class StoriesScreen extends StatelessWidget {
                 const SnackBar(content: Text('Story uploaded successfully!')),
               );
               AppCubit.get(context).getStories();
+            }else if(state is GetStoriesSuccessState){
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Get Stories successfully!'))
+              );
+            }else if(state is GetStoriesErrorState){
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Failed to get Stories!'))
+              );
+            }else if(state is GetStoriesLoadingState){
+              const Center(child: CircularProgressIndicator());
+            }else if(state is UpdateStorySuccessState){
+              SnackBar(content: Text('Marked as Seen!'),);
+            }else if(state is UpdateStoryErrorState){
+              SnackBar(content: Text('Failed to Mark as Seen!'),);
             }
           },
           builder: (context, state) {
@@ -40,10 +54,7 @@ class StoriesScreen extends StatelessWidget {
             return Column(
               children: [
                 Expanded(
-                  child: state is GetStoriesLoadingState
-                      ? const Center(child: CircularProgressIndicator())
-                      : state is GetStoriesSuccessState ? storiesGrid(context, cubit)
-                      : const Center(child: Text('No stories available')),
+                 child: storiesGrid(context, cubit),
                 ),
               ],
             );

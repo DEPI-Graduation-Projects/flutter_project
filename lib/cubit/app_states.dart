@@ -100,3 +100,16 @@ class DeleteStoryLoadingState extends AppStates {}
 class DeleteStorySuccessState extends AppStates {}
 
 class DeleteStoryFailedState extends AppStates {}
+
+class UpdateStorySuccessState extends AppStates {}
+
+class UpdateStoryErrorState extends AppStates {
+  UpdateStoryErrorState(String e);
+}
+
+class GetStorySeenBySuccessState extends AppStates {}
+
+class GetStorySeenByErrorState extends AppStates {
+  GetStorySeenByErrorState(String e);
+}
+
