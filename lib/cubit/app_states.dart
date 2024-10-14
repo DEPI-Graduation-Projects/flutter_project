@@ -100,3 +100,14 @@ class DeleteStoryLoadingState extends AppStates {}
 class DeleteStorySuccessState extends AppStates {}
 
 class DeleteStoryFailedState extends AppStates {}
+
+class GetUserDataSuccessState2 extends AppStates {
+  String userName;
+  GetUserDataSuccessState2({required this.userName});
+}
+
+class SetMessageAsLastSuccessState extends AppStates {}
+
+class FilterMessagesEndState extends AppStates {}
+
+class FilterMessagesStartState extends AppStates {}

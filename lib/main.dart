@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
-import 'package:flutter_project/screens/stories/stories_screen.dart';
+import 'package:flutter_project/layout/home_layout.dart';
 
 import 'firebase_options.dart';
 
@@ -22,12 +22,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AppCubit(),
+      create: (context) => AppCubit()..getMyData("22010237"),
       child: BlocBuilder<AppCubit, AppStates>(
         builder: (context, state) {
-          return const MaterialApp(
+          AppCubit cubb = AppCubit.get(context);
+          return MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: StoriesScreen(),
+            home: HomeLayout(
+              cubb: cubb,
+            ),
           );
         },
       ),

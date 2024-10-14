@@ -14,6 +14,7 @@ import 'package:flutter_project/screens/chats/my_chats/my_chasts.dart';
 import 'package:flutter_project/screens/stories/stories_screen.dart';
 import 'package:flutter_project/screens/user/user_screen/user_screen.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../data/user_story.dart';
 import 'app_states.dart';
@@ -25,7 +26,19 @@ class AppCubit extends Cubit<AppStates> {
 
 ///////////////////////
 
-  // String? userName;
+///////////formate Time
+////
+  static String formatDate(String dateTimeString) {
+    DateTime dateTime = DateTime.parse(dateTimeString);
+    return DateFormat('yyyy-MM-dd', 'en').format(dateTime);
+  }
+
+  static String formatTime(String dateTimeString) {
+    DateTime dateTime = DateTime.parse(dateTimeString);
+    return DateFormat(
+      'hh:mm a',
+    ).format(dateTime);
+  }
 
   ///
   final CollectionReference usersRef =
@@ -61,6 +74,9 @@ class AppCubit extends Cubit<AppStates> {
         isMe
             ? currentUser2 = UserModel.fromJson(users.docs.first.data())
             : currentUser = UserModel.fromJson(users.docs.first.data());
+        if (currentUser != null) {
+          print('the other user name is ${currentUser!.name}');
+        }
         emit(GetUserDataSuccessState());
       });
     } catch (error) {
@@ -68,6 +84,58 @@ class AppCubit extends Cubit<AppStates> {
       print(error);
     }
     return Future(() => null);
+  }
+
+  UserModel? user3;
+  Future<void> getUserData2(String userId) async {
+    try {
+      emit(GetUserDataLoadingState());
+
+      // Wait for Firestore data
+      final users = await FirebaseFirestore.instance
+          .collection("Users")
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      // Assign user3 only if data is found
+      if (users.docs.isNotEmpty) {
+        user3 = UserModel.fromJson(users.docs.first.data());
+        print('the other user name is ${user3!.name}');
+        emit(GetUserDataSuccessState2(userName: user3!.name));
+      } else {
+        print("No user found with this ID");
+        emit(GetUserDataFailedState());
+      }
+    } catch (error) {
+      emit(GetUserDataFailedState());
+      print(error);
+    }
+  }
+
+  ///////////
+  UserModel? userAccount;
+  Future<void> getMyData(String userId) async {
+    try {
+      emit(GetUserDataLoadingState());
+
+      // Wait for Firestore data
+      final users = await FirebaseFirestore.instance
+          .collection("Users")
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      // Assign user3 only if data is found
+      if (users.docs.isNotEmpty) {
+        userAccount = UserModel.fromJson(users.docs.first.data());
+        emit(GetUserDataSuccessState());
+      } else {
+        print("No user found with this ID");
+        emit(GetUserDataFailedState());
+      }
+    } catch (error) {
+      emit(GetUserDataFailedState());
+      print(error);
+    }
   }
 
 /////////////////
@@ -193,11 +261,13 @@ class AppCubit extends Cubit<AppStates> {
   Future<void> addMessage(
       {required String userId,
       required chatId,
-      replyMessage = "",
+      String? replyMessage = "",
       String? message,
       required bool type,
       String? imagaeUrl,
-      required replyMessageId}) {
+      String? replyMessageId = ""}) {
+    DocumentReference chatRef =
+        FirebaseFirestore.instance.collection('Chats').doc(chatId);
     String id = FirebaseFirestore.instance
         .collection('Chats')
         .doc(chatId)
@@ -205,12 +275,7 @@ class AppCubit extends Cubit<AppStates> {
         .doc()
         .id;
     emit(AddMessageLoadingState());
-    FirebaseFirestore.instance
-        .collection('Chats')
-        .doc(chatId)
-        .collection("Messages")
-        .doc(id)
-        .set({
+    chatRef.collection("Messages").doc(id).set({
       'message': message,
       'time': DateTime.now().toString(),
       'id': id,
@@ -218,10 +283,14 @@ class AppCubit extends Cubit<AppStates> {
       "imagaeUrl": imagaeUrl,
       'type': type,
       'isSeen': false,
-      'replyMessage': replyMessage,
-      'replyMessageId': replyMessageId
+      if (replyMessage != null) 'replyMessage': replyMessage,
+      if (replyMessageId != null) 'replyMessageId': replyMessageId
     }).then((value) {
       img = null;
+      chatRef.update({
+        'lastMessage': message,
+        'lastMessageTime': DateTime.now().toString()
+      });
       emit(AddMessageSuccessState());
     }).catchError((error) {
       debugPrint(error);
@@ -308,7 +377,6 @@ class AppCubit extends Cubit<AppStates> {
     return Future(() => null);
   }
 
-///////////
 ////Copy Message
   void copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text)).then((_) {
@@ -364,10 +432,11 @@ class AppCubit extends Cubit<AppStates> {
 
   /////////////////////
   /// create chat method for the first time
-  void createChat({
+  Future<void> createChat({
     required String userId,
     required String receiverId,
     required String message,
+    required List usersNames,
   }) {
     emit(CreateChatLoadingState());
     String id = FirebaseFirestore.instance.collection('Chats').doc().id;
@@ -375,6 +444,8 @@ class AppCubit extends Cubit<AppStates> {
         .collection('Chats')
         .doc(id)
         .set(ChatModel(
+                lastMessageTime: DateTime.now().toString(),
+                usersNames: usersNames,
                 chatId: id,
                 usersIds: [userId, receiverId],
                 lastMessage: message)
@@ -387,10 +458,12 @@ class AppCubit extends Cubit<AppStates> {
           message: message,
           replyMessage: "",
           replyMessageId: "");
+
       emit(CreateChatSuccessState());
     }).catchError((onError) {
       emit(CreateChatFailState());
     });
+    return Future(() => null);
   }
 
 //////////////////
@@ -442,6 +515,26 @@ class AppCubit extends Cubit<AppStates> {
     });
   }
 
+//////////////
+  ///filter chats
+  List<ChatModel> filteredChats = [];
+  void filterList(String query) {
+    emit(FilterMessagesStartState());
+    if (query.isEmpty) {
+      filteredChats = chats;
+    } else {
+      filteredChats = chats
+          .where((chat) => chat.usersNames
+              .firstWhere((name) => name != userAccount!.name)
+              .toString()
+              .toLowerCase()
+              .contains(query
+                  .toLowerCase())) // Non-case-sensitive filtering and partial matching
+          .toList();
+    }
+    emit(FilterMessagesEndState());
+  }
+
   ////////////////////////
   ///get all chats
   List<ChatModel> chats = [];
@@ -456,6 +549,7 @@ class AppCubit extends Cubit<AppStates> {
         .listen((snapshot) {
       chats =
           snapshot.docs.map((doc) => ChatModel.fromJson(doc.data())).toList();
+      filteredChats = chats;
       emit(GetChatsSuccessState());
     });
   }
@@ -476,7 +570,7 @@ class AppCubit extends Cubit<AppStates> {
   ////////////////////
   ///undo method
   void tempDelete(index) {
-    chats.removeAt(index);
+    filteredChats.removeAt(index);
     emit(TempDeleteState());
   }
 

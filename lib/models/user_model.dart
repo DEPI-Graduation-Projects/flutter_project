@@ -19,7 +19,9 @@ class UserModel {
       name: json['name'],
       status: json['status'],
       userId: json['userId'],
-      chatWallpapers: Map<String, dynamic>.from(json['chatWallpapers']),
+      chatWallpapers: json['chatWallpapers'] != null
+          ? Map<String, dynamic>.from(json['chatWallpapers'])
+          : {},
     );
   }
 

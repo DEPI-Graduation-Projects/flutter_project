@@ -14,7 +14,6 @@ import 'package:flutter_project/models/message_model.dart';
 import 'package:flutter_project/screens/user/users_screen/users_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
   final ChatModel chat;
@@ -36,17 +35,6 @@ class _ChatScreenState extends State<ChatScreen> {
   // bool isChatScreenActive = false;
   TextEditingController chatController = TextEditingController();
   List<String> messagesIds = [];
-  String formatDate(String dateTimeString) {
-    DateTime dateTime = DateTime.parse(dateTimeString);
-    return DateFormat('yyyy-MM-dd', 'en').format(dateTime);
-  }
-
-  String formatTime(String dateTimeString) {
-    DateTime dateTime = DateTime.parse(dateTimeString);
-    return DateFormat(
-      'hh:mm a',
-    ).format(dateTime);
-  }
 
   late ScrollController _scrollController;
   List<String> dates = [];
@@ -350,13 +338,14 @@ class _ChatScreenState extends State<ChatScreen> {
                       itemBuilder: (context, index) {
                         final message = widget.cubb.messages[index];
 
-                        final currentDate =
-                            formatDate(message.time); // Format the date
+                        final currentDate = AppCubit.formatDate(
+                            message.time); // Format the date
 
-                        bool isLastMessageOfDay = (index ==
-                                widget.cubb.messages.length - 1) ||
-                            formatDate(widget.cubb.messages[index + 1].time) !=
-                                currentDate;
+                        bool isLastMessageOfDay =
+                            (index == widget.cubb.messages.length - 1) ||
+                                AppCubit.formatDate(
+                                        widget.cubb.messages[index + 1].time) !=
+                                    currentDate;
                         bool isHighlighted = message.id == highlightedMessageId;
 
                         return Column(
@@ -612,7 +601,7 @@ class _ChatScreenState extends State<ChatScreen> {
       required chatId,
       required AppCubit cubb,
       isHighlighted}) {
-    String formattedTime = formatTime(message.time);
+    String formattedTime = AppCubit.formatTime(message.time);
 
     return CustomSwipeItem(
       isMe: isMe,

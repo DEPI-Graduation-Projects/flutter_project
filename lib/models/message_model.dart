@@ -10,7 +10,7 @@ class MessageModel {
   final String replyMessage;
   final String replyMessageId;
   MessageModel(
-      {required this.replyMessage,
+      {this.replyMessage = "",
       required this.message,
       required this.id,
       required this.time,
@@ -18,11 +18,11 @@ class MessageModel {
       required this.type,
       required this.senderId,
       required this.isSeen,
-      required this.replyMessageId});
+      this.replyMessageId = ""});
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
     return MessageModel(
-      replyMessage: json['replyMessage'],
+      replyMessage: json['replyMessage'] ?? "",
       senderId: json['senderId'],
       message: json['message'],
       id: json['id'],
@@ -30,7 +30,7 @@ class MessageModel {
       imagaeUrl: json['imagaeUrl'],
       type: json['type'],
       isSeen: json['isSeen'],
-      replyMessageId: json['replyMessageId'],
+      replyMessageId: json['replyMessageId'] ?? "",
     );
   }
 

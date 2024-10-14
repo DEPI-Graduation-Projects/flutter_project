@@ -84,17 +84,19 @@ class _UsersScreenState extends State<UsersScreen> {
                                     .then((value) {
                                     widget.cubb.currentWallpaper =
                                         "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain";
-                                    if (widget.cubb.currentUser2!.chatWallpapers
+                                    if (widget.cubb.userAccount!.chatWallpapers
                                         .containsKey(currentChat!.chatId)) {
                                       widget.cubb.currentWallpaper = widget
                                           .cubb
-                                          .currentUser2!
+                                          .userAccount!
                                           .chatWallpapers[currentChat.chatId];
                                       print(
                                           'chat current wallpaper ${widget.cubb.currentWallpaper}');
                                     }
                                     String userId = currentChat.usersIds
-                                        .firstWhere((id) => id != "22010237");
+                                        .firstWhere((id) =>
+                                            id !=
+                                            widget.cubb.userAccount!.userId);
                                     widget.cubb
                                         .getUserData(userId, false)
                                         .then((value) {
@@ -111,6 +113,13 @@ class _UsersScreenState extends State<UsersScreen> {
                                     Navigator.pop(context);
                                   })
                                 : widget.cubb.createChat(
+                                    usersNames: [
+                                        'Mahmoud Wahba ',
+                                        widget.cubb.users
+                                            .firstWhere((user) =>
+                                                user.userId == selectedUserId)
+                                            .name
+                                      ],
                                     userId: "22010237",
                                     receiverId: selectedUserId!,
                                     message: widget.message);

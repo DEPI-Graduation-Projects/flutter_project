@@ -20,11 +20,13 @@ class _MyChastsState extends State<MyChasts> {
   TextEditingController addUserChatController = TextEditingController();
 
   TextEditingController messageController = TextEditingController();
+
+  TextEditingController userNameController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     final AppCubit cubb = AppCubit.get(context);
-    cubb.getUserData(widget.userId, true);
     cubb.getMyChats(userId: widget.userId);
   }
 
@@ -51,7 +53,9 @@ class _MyChastsState extends State<MyChasts> {
         }
       },
       builder: (context, state) => Scaffold(
+        backgroundColor: Colors.blueGrey.shade900,
         floatingActionButton: FloatingActionButton(
+            backgroundColor: Colors.amber.shade500,
             child: const Icon(Icons.add),
             onPressed: () {
               showDialog(
@@ -61,10 +65,24 @@ class _MyChastsState extends State<MyChasts> {
                       controller2: messageController,
                       onSave: () async {
                         if (await InternetConnectionChecker().hasConnection) {
-                          cubb.createChat(
-                              userId: AppCubit.userId,
-                              receiverId: addUserChatController.text,
-                              message: messageController.text);
+                          await cubb.getUserData2(addUserChatController.text);
+
+                          // Check if user3 is fetched
+                          if (cubb.user3 != null) {
+                            String name = cubb.user3!.name;
+                            print('my name is $name');
+
+                            await cubb.createChat(
+                                usersNames: [
+                                  "Mahmoud Wahba",
+                                  cubb.user3!.name,
+                                ],
+                                userId: AppCubit.userId,
+                                receiverId: addUserChatController.text,
+                                message: messageController.text);
+                          } else {
+                            print("User data not found");
+                          }
                         } else {
                           debugPrint("No Connection");
                         }
@@ -81,20 +99,39 @@ class _MyChastsState extends State<MyChasts> {
             }),
         body: RefreshIndicator(
           onRefresh: () {
-            print(widget.userId);
-            cubb.getUserData(AppCubit.userId, true);
             cubb.getMyChats(userId: AppCubit.userId);
             return Future(() => null);
           },
-          child: ListView.builder(
-            itemBuilder: (context, index) {
-              return ChatItem(
-                index: index,
-                chat: cubb.chats[index],
-              );
-            },
-            itemCount: cubb.chats.length,
-          ),
+          child: state is GetChatsLoadingState
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : Column(
+                  children: [
+                    DefaultTextField(
+                      type: TextInputType.name,
+                      label: "search",
+                      controller: userNameController,
+                      onChanged: (value) {
+                        cubb.filterList(value);
+                      },
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        itemBuilder: (context, index) {
+                          return ChatItem(
+                            index: index,
+                            chat: cubb.filteredChats[index],
+                          );
+                        },
+                        itemCount: cubb.filteredChats.length,
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );
@@ -109,9 +146,14 @@ class ChatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     AppCubit cubb = AppCubit.get(context);
-    String userId = chat.usersIds.firstWhere((id) => id != AppCubit.userId);
+
+    String userName =
+        chat.usersNames.firstWhere(((name) => name != "Mahmoud Wahba"));
+    String userId =
+        chat.usersIds.firstWhere((id) => id != cubb.userAccount!.userId);
+
     return Dismissible(
-      key: Key(chat.usersIds[1]),
+      key: Key(chat.chatId),
       onDismissed: (direction) {
         ScaffoldMessenger.of(context)
             .showSnackBar(
@@ -122,12 +164,14 @@ class ChatItem extends StatelessWidget {
                     const Spacer(),
                     TextButton(
                       onPressed: () {
-                        cubb.getMyChats(userId: AppCubit.userId);
-                        ScaffoldMessenger.of(context)
-                            .hideCurrentSnackBar(); // Dismiss the SnackBar
-                        cubb.delete =
-                            false; // Mark that delete has been canceled
-                        print('Hager After Undo ${cubb.delete}');
+                        // print('my userId is ${cubb.userAccount!.userId}');
+                        // print('your userId is $userId');
+                        // print('chatId is ${chat.chatId}');
+                        // ScaffoldMessenger.of(context)
+                        //     .hideCurrentSnackBar(); // Dismiss the SnackBar
+                        cubb.delete = false;
+                        cubb.getMyChats(userId: cubb.userAccount!.userId);
+                        print('chatId is ${chat.chatId}');
                       },
                       child: const Text("Undo"),
                     ),
@@ -140,19 +184,19 @@ class ChatItem extends StatelessWidget {
             .then((reason) async {
           if (await InternetConnectionChecker().hasConnection) {
             if (cubb.delete) {
+              print("iam deleting ");
               cubb.deleteChat(chatId: chat.chatId); // Delete chat from Firebase
             } else {
-              cubb.delete = true; // Reset the cancel flag
+              print("not deleting");
+              cubb.delete = true;
             }
           } else {
             //true
             debugPrint(" No connection");
           }
-
-          print('Hager cancle deletion default value is ${cubb.delete}');
-
-          cubb.tempDelete(index); // Remove the item from the list
         });
+        print("index is $index");
+        cubb.tempDelete(index); // Remove the item from the list
       },
       background: Container(
         color: Colors.red, // Color shown when swiped
@@ -166,9 +210,9 @@ class ChatItem extends StatelessWidget {
         onTap: () {
           cubb.currentWallpaper =
               "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain";
-          if (cubb.currentUser2!.chatWallpapers.containsKey(chat.chatId)) {
+          if (cubb.userAccount!.chatWallpapers.containsKey(chat.chatId)) {
             cubb.currentWallpaper =
-                cubb.currentUser2!.chatWallpapers[chat.chatId];
+                cubb.userAccount!.chatWallpapers[chat.chatId];
           }
 
           cubb.getUserData(userId, false).then((value) {
@@ -183,22 +227,30 @@ class ChatItem extends StatelessWidget {
           });
         },
         child: Card(
+          margin: const EdgeInsets.all(1),
+          color: Colors.amber.shade500,
           child: ListTile(
             leading: const CircleAvatar(
+              backgroundColor: Colors.grey,
               radius: 30,
-              child: Icon(Icons.person),
+              child: Icon(
+                color: Colors.white,
+                Icons.person,
+                size: 40,
+              ),
             ),
             title: Text(
-              userId,
+              userName,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             subtitle: Text(
               chat.lastMessage,
               style: const TextStyle(
-                  color: Colors.grey,
+                  color: Colors.white,
                   overflow: TextOverflow.ellipsis,
                   fontSize: 15),
             ),
+            trailing: Text(AppCubit.formatTime(chat.lastMessageTime)),
           ),
         ),
       ),
