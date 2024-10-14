@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,13 +15,17 @@ import 'package:flutter_project/screens/user/user_screen/user_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-import '../data/user_story.dart';
+import '../models/stories_model.dart';
 import 'app_states.dart';
 
 class AppCubit extends Cubit<AppStates> {
   AppCubit() : super(AppInitState());
 
   static AppCubit get(BuildContext context) => BlocProvider.of(context);
+
+  Map<String, String> userNames = {};
+  static const int storyExpirationDuration = 24 * 60 * 60 * 1000;
+  List<UserStory> stories = [];
 
 ///////////////////////
 
@@ -161,30 +164,6 @@ class AppCubit extends Cubit<AppStates> {
       print(error);
     }
     return Future(() => null);
-  }
-
-  Future<String> getUserName(String userId) async {
-    try {
-      emit(GetUserDataLoadingState());
-
-      final snapshot = await FirebaseFirestore.instance
-          .collection("Users")
-          .where('userId', isEqualTo: userId)
-          .get();
-
-      if (snapshot.docs.isNotEmpty) {
-        final userModel = UserModel.fromJson(snapshot.docs[1].data());
-        emit(GetUserDataSuccessState());
-        return userModel.name;
-      } else {
-        emit(GetUserDataFailedState());
-        return 'Unknown';
-      }
-    } catch (error) {
-      emit(GetUserDataFailedState());
-      print(error);
-      return error.toString();
-    }
   }
 
   ////////////
@@ -574,8 +553,70 @@ class AppCubit extends Cubit<AppStates> {
     emit(TempDeleteState());
   }
 
+  ImageProvider? getUserProfilePhoto(String userId) {
+    try {
+      // First, check if the user is the current user
+      if (userId == AppCubit.userId && currentUser2 != null) {
+        return NetworkImage(currentUser2!.profilePhoto!);
+      }
+
+      // If not, search in the users list
+      UserModel? user = users.firstWhere((user) => user.userId == userId);
+      if (user.profilePhoto != null) {
+        return NetworkImage(user.profilePhoto!);
+      }
+
+      // If user not found or doesn't have a profile photo, return null
+      return null;
+    } catch (error) {
+      print('Error getting user profile photo: $error');
+      return null;
+    }
+  }
+
   final CollectionReference storiesRef =
       FirebaseFirestore.instance.collection('stories');
+
+  ///listen to seen
+  void listenForNewStories(String currentUserId) async {
+    print("Starting listenForNewStories for user: $currentUserId");
+    FirebaseFirestore.instance.collection('stories').snapshots().listen(
+        (querySnapshot) {
+      print("Received snapshot with ${querySnapshot.docs.length} documents");
+      for (var doc in querySnapshot.docs) {
+        try {
+          UserStory story = UserStory.fromMap(doc.data(), doc.id);
+
+          print(
+              "Checking story ${story.id} - userId: ${story.userId}, seenBy: ${story.seenBy}");
+
+          if (story.userId != currentUserId && !story.isSeenBy(currentUserId)) {
+            print("Updating story ${story.id} for user $currentUserId");
+            doc.reference.update({
+              'seenBy': FieldValue.arrayUnion([currentUserId]),
+            }).then((_) {
+              print('Story ${story.id} marked as seen by $currentUserId');
+              emit(UpdateStorySuccessState());
+            }).catchError((error) {
+              print('Error updating story: $error');
+              emit(UpdateStoryErrorState(error.toString()));
+            });
+          } else if (story.userId == currentUserId) {
+            print(
+                "Story ${story.id} belongs to the current user, not marking as seen");
+          } else {
+            print("Story ${story.id} already seen by $currentUserId");
+          }
+        } catch (e) {
+          print("Error processing story: $e");
+          emit(UpdateStoryErrorState(e.toString()));
+        }
+      }
+    }, onError: (error) {
+      print("Error in listenForNewStories: $error");
+      emit(UpdateStoryErrorState(error.toString()));
+    });
+  }
 
   /// Pick Story Image
   void pickAndUploadStoryImage(String userId) async {
@@ -589,13 +630,10 @@ class AppCubit extends Cubit<AppStates> {
         emit(PickStoryImageSuccessState());
 
         // Generate the storyId before uploading
-        String storyId =
-            FirebaseFirestore.instance.collection('stories').doc().id;
+        String storyId = storiesRef.doc().id;
 
-        // Upload to Firebase Storage using the same storyId
         String storyImageUrl = await uploadStoryImage(storyImage, storyId);
         if (storyImageUrl.isNotEmpty) {
-          // Add story metadata to Firestore using the same storyId
           await addStory(
               userId: userId, storyId: storyId, imageUrl: storyImageUrl);
         }
@@ -640,14 +678,18 @@ class AppCubit extends Cubit<AppStates> {
         userId: userId,
         imgURL: imageUrl,
         timeStamp: DateTime.now(),
+        seenBy: [],
       );
 
-      await FirebaseFirestore.instance.collection('stories').doc(storyId).set({
+      await storiesRef.doc(storyId).set({
         'id': userStory.id,
         'userId': userStory.userId,
         'imgURL': userStory.imgURL,
         'timeStamp': userStory.timeStamp.toIso8601String(),
+        'seenBy': userStory.seenBy,
       });
+
+      // scheduleStoryDeletion(storyId);
 
       emit(AddStorySuccessState());
     } catch (e) {
@@ -656,17 +698,13 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
+  /// delete Story
   Future<void> deleteStory({required String storyId}) async {
     emit(DeleteStoryLoadingState());
 
     try {
-      // Delete story metadata from Firestore
-      await FirebaseFirestore.instance
-          .collection('stories')
-          .doc(storyId)
-          .delete();
+      await storiesRef.doc(storyId).delete();
 
-      // Delete story image from Firebase Storage
       await FirebaseStorage.instance.ref().child('stories/$storyId').delete();
 
       emit(DeleteStorySuccessState());
@@ -678,53 +716,82 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   /// Get All Stories
-  List<UserStory> stories = [];
-
   void getStories() {
     emit(GetStoriesLoadingState());
-    FirebaseFirestore.instance
-        .collection('stories')
-        .orderBy('timeStamp', descending: true)
-        .snapshots()
-        .listen((snapshot) {
-      stories = snapshot.docs.map((doc) {
-        final timestamp = doc['timeStamp'];
-        DateTime timeStampDateTime =
-            timestamp is Timestamp ? timestamp.toDate() : DateTime.now();
-        return UserStory(
+    deleteExpiredStoriesFromBackend();
+
+    try {
+      storiesRef
+          .orderBy('timeStamp', descending: true)
+          .snapshots()
+          .listen((snapshot) {
+        stories = snapshot.docs.map((doc) {
+          final timestampString = doc['timeStamp'] as String;
+          DateTime timeStampDateTime = DateTime.parse(timestampString);
+          return UserStory(
             id: doc['id'] ?? '',
             userId: doc['userId'] ?? '',
             imgURL: doc['imgURL'] ?? '',
-            timeStamp: timeStampDateTime);
-      }).toList();
-      emit(GetStoriesSuccessState());
-    });
+            timeStamp: timeStampDateTime,
+            seenBy: List<String>.from(doc['seenBy'] ?? []),
+          );
+        }).toList();
+        emit(GetStoriesSuccessState());
+
+        deleteExpiredStoriesFromBackend();
+      });
+    } catch (e) {
+      emit(GetStoriesErrorState(e.toString()));
+    }
   }
 
-  Map<String, UserModel> usersList = {};
-  List<User> getUsersWithStories() {
-    Set<String> userIds = stories.map((story) => story.userId).toSet();
-    return userIds
-        .map((userId) => usersList[userId])
-        .where((user) => user != null)
-        .cast<User>()
-        .toList();
+  // auto delete Story after 24 hr
+  void deleteExpiredStoriesFromBackend() {
+    print('Checking for expired stories...');
+    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    print('Current time in milliseconds: $currentTime');
+
+    for (var story in List.from(stories)) {
+      final storyTimeStampInMillis = story.timeStamp.millisecondsSinceEpoch;
+      final storyAge = currentTime - storyTimeStampInMillis;
+
+      print('Story ID: ${story.id}, Age: $storyAge');
+
+      if (storyAge >= storyExpirationDuration) {
+        storiesRef.doc(story.id).delete().then((_) {
+          print('Successfully deleted story: ${story.id}');
+        }).catchError((error) {
+          print('Failed to delete story: $error');
+        });
+        FirebaseStorage.instance
+            .ref()
+            .child('stories/${story.id}')
+            .delete()
+            .then((_) {
+          print('Successfully deleted story: ${story.id}');
+        }).catchError((error) {
+          print('Failed to delete story: $error');
+        });
+      }
+    }
   }
 
-  List<UserStory> getStoriesForUser(String userId) {
-    return stories.where((story) => story.userId == userId).toList();
-  }
+  ///get stories seen
+  Future<List<String>> getStorySeenBy(String storyId) async {
+    try {
+      DocumentSnapshot storyDoc = await storiesRef.doc(storyId).get();
 
-  // void uploadStory(String userId, String imgUrl) {
-  //   FirebaseFirestore.instance.collection('stories').add({
-  //     'userId': userId,
-  //     'imgURL': imgUrl,
-  //     'timeStamp': FieldValue.serverTimestamp(),
-  //   }).then((value) {
-  //     getStories();
-  //     emit(AddStorySuccessState());
-  //   }).catchError((error) {
-  //     emit(UploadStoryImageFailedState());
-  //   });
-  // }
+      if (storyDoc.exists) {
+        Map<String, dynamic> data = storyDoc.data() as Map<String, dynamic>;
+        List<String> seenBy = List<String>.from(data['seenBy'] ?? []);
+        emit(GetStorySeenBySuccessState());
+        return seenBy;
+      } else {
+        return [];
+      }
+    } catch (e) {
+      emit(GetStorySeenByErrorState(e.toString()));
+      return [];
+    }
+  }
 }

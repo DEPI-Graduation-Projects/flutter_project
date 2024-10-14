@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:flutter_bloc/flutter_bloc.dart' as bloc;
+import 'package:flutter_project/widgets/stories_widgets/seen_list.dart';
 import '../../cubit/app_cubit.dart';
 import '../../cubit/app_states.dart';
-import '../../data/user_story.dart';
+import '../../models/stories_model.dart';
+import 'package:get/get.dart';
 
 class StoryView extends StatefulWidget {
   final List<UserStory> stories;
@@ -12,15 +14,19 @@ class StoryView extends StatefulWidget {
   const StoryView({super.key, required this.stories, this.initialIndex = 0});
 
   @override
-  _StoryViewState createState() => _StoryViewState();
+  StoryViewState createState() => StoryViewState();
 }
 
-class _StoryViewState extends State<StoryView> {
+class StoryViewState extends State<StoryView> {
   late PageController _pageController;
   late int _currentIndex;
   bool _showUserName = true;
   final Duration _storyDuration = const Duration(seconds: 5);
   late List<double> _progressList;
+  Timer? _timer;
+  bool _isLoading = true;
+  Duration _remainingDuration = const Duration(seconds: 5);
+  late DateTime _startTime;
 
   @override
   void initState() {
@@ -28,38 +34,46 @@ class _StoryViewState extends State<StoryView> {
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
 
-    _progressList = List<double>.filled(widget.stories.length, 0.0);
+    Future.delayed(const Duration(seconds: 1), () {
+      setState(() {
+        _isLoading = false;
+      });
+    });
 
+    _progressList = List<double>.filled(widget.stories.length, 0.0);
     _startProgress();
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
   void _startProgress() {
-    setState(() {
-      _progressList[_currentIndex] = 0.0;
+    _startTime = DateTime.now();
+    _progressList[_currentIndex] = 0.0;
+
+    _timer = Timer(_remainingDuration, () {
+      if (mounted) {
+        _goToNextStory();
+      }
     });
+  }
 
-    Future.delayed(Duration.zero, () {
-      TweenAnimationBuilder(
-        tween: Tween<double>(begin: 0, end: 1),
-        duration: _storyDuration,
-        builder: (context, value, child) {
-          setState(() {
-            _progressList[_currentIndex] = value;
-          });
+  void _pauseProgress() {
+    final elapsedTime = DateTime.now().difference(_startTime);
+    _remainingDuration = _storyDuration - elapsedTime;
+    _timer?.cancel();
+  }
 
-          if (value == 1.0) {
-            _goToNextStory();
-          }
-
-          return SizedBox();
-        },
-      );
+  void _resumeProgress() {
+    _startTime = DateTime.now();
+    _timer = Timer(_remainingDuration, () {
+      if (mounted) {
+        _goToNextStory();
+      }
     });
   }
 
@@ -67,6 +81,7 @@ class _StoryViewState extends State<StoryView> {
     if (_currentIndex < widget.stories.length - 1) {
       setState(() {
         _currentIndex++;
+        _remainingDuration = _storyDuration;
         _startProgress();
       });
 
@@ -75,43 +90,48 @@ class _StoryViewState extends State<StoryView> {
         curve: Curves.easeInOut,
       );
     } else {
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.of(context).maybePop();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: BlocProvider(
-        create: (context) => AppCubit(),
-        child: BlocConsumer<AppCubit, AppStates>(
-          listener: (context, state) {
-            if (state is DeleteStorySuccessState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Story deleted successfully!')),
-              );
-              if (widget.stories.length > 1) {
-                setState(() {
-                  widget.stories.removeAt(_currentIndex);
-                  if (_currentIndex > 0) _currentIndex--;
-                });
-              } else {
-                Navigator.pop(context);
+    return bloc.BlocProvider(
+      create: (context) => AppCubit()
+        ..getStories()
+        ..fetchAllUserNames(),
+      child: SafeArea(
+        child: Scaffold(
+          body: bloc.BlocConsumer<AppCubit, AppStates>(
+            listener: (BuildContext context, state) {
+              if (state is DeleteStoryLoadingState) {
+                const Center(
+                  child: CircularProgressIndicator(),
+                );
+              } else if (state is DeleteStorySuccessState) {
+                const SnackBar(
+                  content: Text('Story Deleted Successfully!'),
+                );
+              } else if (state is DeleteStoryFailedState) {
+                const SnackBar(
+                  content: Text('Failed to delete story!'),
+                );
               }
-            } else if (state is DeleteStoryFailedState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Failed to delete story!')),
-              );
-            }
-          },
-          builder: (context, state) {
-            var cubit = AppCubit.get(context);
-            return Scaffold(
-              body: GestureDetector(
+            },
+            builder: (context, state) {
+              return GestureDetector(
                 onTap: () => _goToNextStory(),
                 onLongPress: () {
                   setState(() {
+                    _pauseProgress();
                     _showUserName = !_showUserName;
+                  });
+                },
+                onLongPressUp: () {
+                  setState(() {
+                    _resumeProgress();
                   });
                 },
                 onVerticalDragEnd: (details) {
@@ -121,61 +141,68 @@ class _StoryViewState extends State<StoryView> {
                 },
                 child: Stack(
                   children: [
-                    PageView.builder(
-                      controller: _pageController,
-                      itemCount: widget.stories.length,
-                      onPageChanged: (index) {
-                        setState(() {
-                          _currentIndex = index;
-                          _startProgress();
-                        });
-                      },
-                      itemBuilder: (context, index) {
-                        int storyIndex = widget.stories.length - 1 - index;
-                        return Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                image: DecorationImage(
-                                  image: NetworkImage(
-                                      widget.stories[storyIndex].imgURL),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            if (_showUserName)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 15.0, vertical: 10),
-                                child: Text(
-                                  '${cubit.currentUser?.name}\'s Story',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    shadows: [
-                                      Shadow(
-                                        blurRadius: 10.0,
-                                        color: Colors.black,
-                                        offset: Offset(2.0, 2.0),
+                    _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(),
+                          )
+                        : PageView.builder(
+                            controller: _pageController,
+                            itemCount: widget.stories.length,
+                            onPageChanged: (index) {
+                              setState(() {
+                                _currentIndex = index;
+                                _remainingDuration = _storyDuration;
+                                _startProgress();
+                              });
+                            },
+                            itemBuilder: (context, index) {
+                              return Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      image: DecorationImage(
+                                        image: NetworkImage(
+                                            widget.stories[index].imgURL),
+                                        fit: BoxFit.cover,
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
+                                  if (_showUserName)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 15.0, vertical: 10),
+                                      child: Text(
+                                        widget.stories[index].userId ==
+                                                AppCubit.userId
+                                            ? 'My Story'
+                                            : '${AppCubit.get(context).userNames[widget.stories[index].userId]}\'s Story',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          shadows: [
+                                            Shadow(
+                                              blurRadius: 10.0,
+                                              color: Colors.black,
+                                              offset: Offset(2.0, 2.0),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
                     Row(
                       children: List.generate(widget.stories.length, (index) {
                         return Expanded(
                           child: Padding(
                             padding:
-                            const EdgeInsets.symmetric(horizontal: 2.0),
+                                const EdgeInsets.symmetric(horizontal: 2.0),
                             child: LinearProgressIndicator(
-                              value: _progressList[widget.stories.length - 1 - index],
+                              value: _progressList[index],
                               backgroundColor: index >= _currentIndex
                                   ? Colors.grey
                                   : Colors.blue,
@@ -187,26 +214,130 @@ class _StoryViewState extends State<StoryView> {
                     ),
                   ],
                 ),
-              ),
-              floatingActionButton: IconButton(
-                onPressed: () {
-                  cubit.deleteStory(storyId: widget.stories[widget.stories.length - 1 - _currentIndex].id);
-                },
-                icon: state is DeleteStoryLoadingState
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Icon(Icons.delete,
-                    color: Colors.blue,
-                    size: 40,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 50.0,
-                        color: Colors.grey,
-                        offset: Offset(2.0, 2.0),
+              );
+            },
+          ),
+          floatingActionButton:
+              widget.stories[_currentIndex].userId == AppCubit.userId
+                  ? Stack(children: [
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: FloatingActionButton(
+                          backgroundColor: Colors.blue,
+                          onPressed: () {
+                            AppCubit.get(context).deleteStory(
+                                storyId: widget.stories[_currentIndex].id);
+                          },
+                          child: const Icon(Icons.delete,
+                              color: Colors.white, size: 30),
+                        ),
                       ),
-                    ]),
-              ),
-            );
-          },
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: FutureBuilder<List<String>>(
+                          future: AppCubit.get(context)
+                              .getStorySeenBy(widget.stories[_currentIndex].id),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return ElevatedButton(
+                                onPressed: () {},
+                                style: ButtonStyle(
+                                  backgroundColor:
+                                      WidgetStateProperty.all(Colors.blue),
+                                  shape: WidgetStateProperty.all(
+                                      RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  )),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.remove_red_eye,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'Loading...',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 17),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } else if (snapshot.hasError) {
+                              return ElevatedButton(
+                                onPressed: () {},
+                                style: ButtonStyle(
+                                  backgroundColor:
+                                      WidgetStateProperty.all(Colors.blue),
+                                  shape: WidgetStateProperty.all(
+                                      RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  )),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.remove_red_eye,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'Error',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 17),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } else {
+                              final seenCount = snapshot.data?.length ?? 0;
+                              return ElevatedButton(
+                                onPressed: () {
+                                  _timer?.cancel();
+                                  Get.to(
+                                      SeenList(widget.stories[_currentIndex].id,
+                                          seenCount),
+                                      transition: Transition.downToUp,
+                                      duration: const Duration(seconds: 1));
+                                  // Navigator.push(context, MaterialPageRoute(builder: (context) => SeenList(widget.stories[_currentIndex].id)));
+                                },
+                                style: ButtonStyle(
+                                  backgroundColor:
+                                      WidgetStateProperty.all(Colors.blue),
+                                  shape: WidgetStateProperty.all(
+                                      RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  )),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.remove_red_eye,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      '$seenCount',
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 17),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      )
+                    ])
+                  : const SizedBox.shrink(),
         ),
       ),
     );
