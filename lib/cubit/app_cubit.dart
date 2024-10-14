@@ -23,12 +23,10 @@ class AppCubit extends Cubit<AppStates> {
 
   static AppCubit get(BuildContext context) => BlocProvider.of(context);
 
+///////////////////////
   Map<String, String> userNames = {};
   static const int storyExpirationDuration = 24 * 60 * 60 * 1000;
   List<UserStory> stories = [];
-
-///////////////////////
-
 ///////////formate Time
 ////
   static String formatDate(String dateTimeString) {
@@ -89,6 +87,25 @@ class AppCubit extends Cubit<AppStates> {
     return Future(() => null);
   }
 
+  //////////////
+  void fetchAllUserNames() async {
+    try {
+      var querySnapshot =
+          await FirebaseFirestore.instance.collection('Users').get();
+
+      for (var doc in querySnapshot.docs) {
+        String userId = doc['userId'];
+        String userName = doc['name'];
+        userNames[userId] = userName;
+      }
+      emit(GetUserDataSuccessState());
+    } catch (error) {
+      print('Error fetching user data: $error');
+      emit(GetUserDataFailedState());
+    }
+  }
+
+///////
   UserModel? user3;
   Future<void> getUserData2(String userId) async {
     try {
@@ -164,6 +181,30 @@ class AppCubit extends Cubit<AppStates> {
       print(error);
     }
     return Future(() => null);
+  }
+
+  Future<String> getUserName(String userId) async {
+    try {
+      emit(GetUserDataLoadingState());
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection("Users")
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final userModel = UserModel.fromJson(snapshot.docs[1].data());
+        emit(GetUserDataSuccessState());
+        return userModel.name;
+      } else {
+        emit(GetUserDataFailedState());
+        return 'Unknown';
+      }
+    } catch (error) {
+      emit(GetUserDataFailedState());
+      print(error);
+      return error.toString();
+    }
   }
 
   ////////////

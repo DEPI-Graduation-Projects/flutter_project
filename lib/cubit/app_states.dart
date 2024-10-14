@@ -111,3 +111,15 @@ class SetMessageAsLastSuccessState extends AppStates {}
 class FilterMessagesEndState extends AppStates {}
 
 class FilterMessagesStartState extends AppStates {}
+
+class UpdateStorySuccessState extends AppStates {}
+
+class UpdateStoryErrorState extends AppStates {
+  UpdateStoryErrorState(String e);
+}
+
+class GetStorySeenBySuccessState extends AppStates {}
+
+class GetStorySeenByErrorState extends AppStates {
+  GetStorySeenByErrorState(String e);
+}
