@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../cubit/app_cubit.dart';
+import '../../cubit/story_cubit.dart';
 import '../../models/stories_model.dart';
 import 'user_story_card.dart';
 
-Widget storiesGrid(BuildContext context, AppCubit cubit) {
+Widget storiesGrid(BuildContext context, StoryCubit cubit) {
   final Map<String, List<UserStory>> groupedStories = {};
   for (var story in cubit.stories) {
     if (!groupedStories.containsKey(story.userId)) {
@@ -26,6 +27,8 @@ Widget storiesGrid(BuildContext context, AppCubit cubit) {
     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: 2,
       childAspectRatio: 0.75,
+      mainAxisSpacing: 4,
+      crossAxisSpacing: 4
     ),
     itemCount: userIds.length,
     itemBuilder: (context, index) {

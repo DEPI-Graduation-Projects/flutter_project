@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_project/Components/constants.dart';
 
 import '../../cubit/app_cubit.dart';
+import '../../cubit/story_cubit.dart';
 import '../../models/stories_model.dart';
 import '../../screens/stories/story_view.dart';
 import 'addStoryCard.dart';
 import 'user_content.dart';
 
-Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userStories, String userId, bool isCurrentUser) {
+Widget userStoryCard(BuildContext context, StoryCubit cubit, List<UserStory> userStories, String userId, bool isCurrentUser) {
   if (isCurrentUser && userStories.isEmpty) {
     return addStoryCard(context, cubit);
   }
@@ -67,7 +68,7 @@ Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userS
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  isCurrentUser ? 'My Story' : (cubit.userNames[userId] ?? 'No name found'),
+                  isCurrentUser ? 'My Story' : (cubit.userNames?[userId] ?? 'No name found'),
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -98,9 +99,9 @@ Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userS
                   onTap: () {
                     cubit.pickAndUploadStoryImage(AppCubit.userId);
                   },
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     radius: 16,
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Constants.appPrimaryColor,
                     child: Icon(Icons.add, color: Colors.white, size: 20),
                   ),
                 ),

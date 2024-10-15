@@ -3,8 +3,9 @@ import 'package:flutter_project/widgets/stories_widgets/user_content.dart';
 
 import '../../Components/constants.dart';
 import '../../cubit/app_cubit.dart';
+import '../../cubit/story_cubit.dart';
 
-Widget addStoryCard(BuildContext context, AppCubit cubit) {
+Widget addStoryCard(BuildContext context, StoryCubit cubit) {
   return GestureDetector(
     onTap: () {
       cubit.pickAndUploadStoryImage(AppCubit.userId);
@@ -27,7 +28,7 @@ Widget addStoryCard(BuildContext context, AppCubit cubit) {
             child: CircleAvatar(
               radius: 16,
               backgroundColor: Constants.appPrimaryColor,
-              child: Icon(Icons.add, color: Colors.white, size: 20),
+              child: const Icon(Icons.add, color: Colors.white, size: 20),
             ),
           ),
           const Align(
