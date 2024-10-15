@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart' as bloc;
 import 'package:flutter_project/widgets/stories_widgets/seen_list.dart';
+import '../../Components/constants.dart';
 import '../../cubit/app_cubit.dart';
 import '../../cubit/app_states.dart';
 import '../../models/stories_model.dart';
@@ -174,7 +175,7 @@ class StoryViewState extends State<StoryView> {
                                           horizontal: 15.0, vertical: 10),
                                       child: Text(
                                         widget.stories[index].userId ==
-                                                AppCubit.userId
+                                                Constants.userAccount.userId
                                             ? 'My Story'
                                             : '${AppCubit.get(context).userNames[widget.stories[index].userId]}\'s Story',
                                         style: const TextStyle(
@@ -217,127 +218,127 @@ class StoryViewState extends State<StoryView> {
               );
             },
           ),
-          floatingActionButton:
-              widget.stories[_currentIndex].userId == AppCubit.userId
-                  ? Stack(children: [
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: FloatingActionButton(
-                          backgroundColor: Colors.blue,
-                          onPressed: () {
-                            AppCubit.get(context).deleteStory(
-                                storyId: widget.stories[_currentIndex].id);
-                          },
-                          child: const Icon(Icons.delete,
-                              color: Colors.white, size: 30),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: FutureBuilder<List<String>>(
-                          future: AppCubit.get(context)
-                              .getStorySeenBy(widget.stories[_currentIndex].id),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return ElevatedButton(
-                                onPressed: () {},
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStateProperty.all(Colors.blue),
-                                  shape: WidgetStateProperty.all(
-                                      RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  )),
+          floatingActionButton: widget.stories[_currentIndex].userId ==
+                  Constants.userAccount.userId
+              ? Stack(children: [
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: FloatingActionButton(
+                      backgroundColor: Colors.blue,
+                      onPressed: () {
+                        AppCubit.get(context).deleteStory(
+                            storyId: widget.stories[_currentIndex].id);
+                      },
+                      child: const Icon(Icons.delete,
+                          color: Colors.white, size: 30),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: FutureBuilder<List<String>>(
+                      future: AppCubit.get(context)
+                          .getStorySeenBy(widget.stories[_currentIndex].id),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return ElevatedButton(
+                            onPressed: () {},
+                            style: ButtonStyle(
+                              backgroundColor:
+                                  WidgetStateProperty.all(Colors.blue),
+                              shape: WidgetStateProperty.all(
+                                  RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              )),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.remove_red_eye,
+                                  color: Colors.white,
+                                  size: 20,
                                 ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.remove_red_eye,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 5),
-                                    Text(
-                                      'Loading...',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 17),
-                                    ),
-                                  ],
+                                SizedBox(width: 5),
+                                Text(
+                                  'Loading...',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 17),
                                 ),
-                              );
-                            } else if (snapshot.hasError) {
-                              return ElevatedButton(
-                                onPressed: () {},
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStateProperty.all(Colors.blue),
-                                  shape: WidgetStateProperty.all(
-                                      RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  )),
+                              ],
+                            ),
+                          );
+                        } else if (snapshot.hasError) {
+                          return ElevatedButton(
+                            onPressed: () {},
+                            style: ButtonStyle(
+                              backgroundColor:
+                                  WidgetStateProperty.all(Colors.blue),
+                              shape: WidgetStateProperty.all(
+                                  RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              )),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.remove_red_eye,
+                                  color: Colors.white,
+                                  size: 20,
                                 ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.remove_red_eye,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 5),
-                                    Text(
-                                      'Error',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 17),
-                                    ),
-                                  ],
+                                SizedBox(width: 5),
+                                Text(
+                                  'Error',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 17),
                                 ),
-                              );
-                            } else {
-                              final seenCount = snapshot.data?.length ?? 0;
-                              return ElevatedButton(
-                                onPressed: () {
-                                  _timer?.cancel();
-                                  Get.to(
-                                      SeenList(widget.stories[_currentIndex].id,
-                                          seenCount),
-                                      transition: Transition.downToUp,
-                                      duration: const Duration(seconds: 1));
-                                  // Navigator.push(context, MaterialPageRoute(builder: (context) => SeenList(widget.stories[_currentIndex].id)));
-                                },
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStateProperty.all(Colors.blue),
-                                  shape: WidgetStateProperty.all(
-                                      RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  )),
+                              ],
+                            ),
+                          );
+                        } else {
+                          final seenCount = snapshot.data?.length ?? 0;
+                          return ElevatedButton(
+                            onPressed: () {
+                              _timer?.cancel();
+                              Get.to(
+                                  SeenList(widget.stories[_currentIndex].id,
+                                      seenCount),
+                                  transition: Transition.downToUp,
+                                  duration: const Duration(seconds: 1));
+                              // Navigator.push(context, MaterialPageRoute(builder: (context) => SeenList(widget.stories[_currentIndex].id)));
+                            },
+                            style: ButtonStyle(
+                              backgroundColor:
+                                  WidgetStateProperty.all(Colors.blue),
+                              shape: WidgetStateProperty.all(
+                                  RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              )),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.remove_red_eye,
+                                  color: Colors.white,
+                                  size: 20,
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.remove_red_eye,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      '$seenCount',
-                                      style: const TextStyle(
-                                          color: Colors.white, fontSize: 17),
-                                    ),
-                                  ],
+                                const SizedBox(width: 5),
+                                Text(
+                                  '$seenCount',
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 17),
                                 ),
-                              );
-                            }
-                          },
-                        ),
-                      )
-                    ])
-                  : const SizedBox.shrink(),
+                              ],
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  )
+                ])
+              : const SizedBox.shrink(),
         ),
       ),
     );

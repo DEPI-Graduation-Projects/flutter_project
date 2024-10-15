@@ -6,7 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/Components/constants.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
+import 'package:flutter_project/screens/auth/login/login.dart';
 import 'package:flutter_project/screens/user/my_account/user_details_screen.dart';
+import 'package:flutter_project/sharedPref/sharedPrefHelper.dart';
 
 class HomeLayout extends StatefulWidget {
   final AppCubit cubb;
@@ -17,18 +19,16 @@ class HomeLayout extends StatefulWidget {
 }
 
 class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
-  String userId = "22010237";
-  bool isMe = false;
   bool setOnline = true;
   final GlobalKey<CurvedNavigationBarState> _bottomNavigationKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
+    // widget.cubb.getMyData();
     WidgetsBinding.instance.addObserver(this);
     // Set the user as online when the app starts
-    widget.cubb.setUserOnline(userId);
-
+    widget.cubb.setUserOnline(CacheHelper.getUserIdValue()!);
     // Handle the disconnection case
   }
 
@@ -36,23 +36,23 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
       // Mark user as offline when the app goes to background
-      widget.cubb.setUserOffline(userId);
+      widget.cubb.setUserOffline(CacheHelper.getUserIdValue()!);
     } else if (state == AppLifecycleState.resumed) {
       // Mark user as online when the app is resumed
-      widget.cubb.setUserOnline(userId);
+      widget.cubb.setUserOnline(CacheHelper.getUserIdValue()!);
     }
   }
 
-  void changeUser() {
-    setState(() {
-      userId = isMe ? "22010237" : "22010289";
-      AppCubit.userId = isMe ? "22010237" : "22010289";
-      print(AppCubit.userId);
-      widget.cubb.setUserOnline(userId);
-      widget.cubb.setUserOffline(!isMe ? "22010237" : "22010289");
-      isMe = !isMe;
-    });
-  }
+  // void changeUser() {
+  //   setState(() {
+  //     userId = isMe ? "22010237" : "22010289";
+  //     AppCubit.userId = isMe ? "22010237" : "22010289";
+  //     print(AppCubit.userId);
+  //     widget.cubb.setUserOnline(userId);
+  //     widget.cubb.setUserOffline(!isMe ? "22010237" : "22010289");
+  //     isMe = !isMe;
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -76,19 +76,36 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
               },
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 27,
-                  child: CircleAvatar(
-                    radius: 25,
-                    backgroundColor: Colors.white,
-                    child: CachedNetworkImage(
-                        imageUrl: widget.cubb.userAccount!.profilePhoto ??
-                            "https://cdn.pixabay.com/photo/2017/02/23/13/05/avatar-2092113_1280.png"),
+                child: Container(
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          width: 2, color: Constants.appPrimaryColor)),
+                  width: 50,
+                  height: 50,
+                  child: Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(40),
+                      child: CachedNetworkImage(
+                          width: 39,
+                          height: 41,
+                          fit: BoxFit.cover,
+                          imageUrl: Constants.userAccount.profilePhoto!),
+                    ),
                   ),
                 ),
               ),
-            )
+            ),
+            IconButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ));
+                  CacheHelper.sharedPreferences!.clear();
+                },
+                icon: const Icon(Icons.exit_to_app))
           ],
         ),
         bottomNavigationBar: CurvedNavigationBar(

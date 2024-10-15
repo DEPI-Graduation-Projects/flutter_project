@@ -6,6 +6,7 @@ import 'package:flutter_project/cubit/app_states.dart';
 import 'package:flutter_project/models/user_model.dart';
 import 'package:flutter_project/screens/chats/chat_screen/chat_screen.dart';
 
+import '../../../Components/constants.dart';
 import '../../../models/chat_model.dart';
 
 class UsersScreen extends StatefulWidget {
@@ -78,25 +79,23 @@ class _UsersScreenState extends State<UsersScreen> {
                                     .addMessage(
                                         replyMessageId: "",
                                         message: widget.message,
-                                        userId: AppCubit.userId,
+                                        userId: Constants.userAccount.userId,
                                         chatId: chatId,
                                         type: false)
                                     .then((value) {
                                     widget.cubb.currentWallpaper =
                                         "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain";
-                                    if (widget.cubb.userAccount!.chatWallpapers
+                                    if (Constants.userAccount.chatWallpapers
                                         .containsKey(currentChat!.chatId)) {
-                                      widget.cubb.currentWallpaper = widget
-                                          .cubb
-                                          .userAccount!
+                                      widget.cubb.currentWallpaper = Constants
+                                          .userAccount
                                           .chatWallpapers[currentChat.chatId];
                                       print(
                                           'chat current wallpaper ${widget.cubb.currentWallpaper}');
                                     }
                                     String userId = currentChat.usersIds
                                         .firstWhere((id) =>
-                                            id !=
-                                            widget.cubb.userAccount!.userId);
+                                            id != Constants.userAccount.userId);
                                     widget.cubb
                                         .getUserData(userId, false)
                                         .then((value) {
@@ -120,7 +119,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                                 user.userId == selectedUserId)
                                             .name
                                       ],
-                                    userId: "22010237",
+                                    userId: Constants.userAccount.userId,
                                     receiverId: selectedUserId!,
                                     message: widget.message);
                           },

@@ -48,13 +48,13 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollController = ScrollController();
 
     // isChatScreenActive = true;
-    String userId =
-        widget.chat.usersIds.firstWhere((id) => id != AppCubit.userId);
+    String userId = widget.chat.usersIds
+        .firstWhere((id) => id != Constants.userAccount.userId);
 
     widget.cubb.listenForNewMessages(widget.chat.chatId, userId);
 
-    widget.cubb
-        .getChatMessages(userId: AppCubit.userId, chatId: widget.chat.chatId);
+    widget.cubb.getChatMessages(
+        userId: Constants.userAccount.userId, chatId: widget.chat.chatId);
   }
 
   String? highlightedMessageId;
@@ -187,11 +187,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         PopupMenuButton<String>(
                           onSelected: (value) {
                             if (value == 'swap') {
-                              setState(() {
-                                widget.cubb
-                                    .changeUserId(widget.cubb.isMe, context);
-                                widget.cubb.isMe = !(widget.cubb.isMe);
-                              });
+                              // setState(() {
+                              //   widget.cubb
+                              //       .changeUserId(widget.cubb.isMe, context);
+                              //   widget.cubb.isMe = !(widget.cubb.isMe);
+                              // });
                             } else if (value == 'delete') {
                               messagesIds.isNotEmpty
                                   ? widget.cubb.deleteSelectedMessages(
@@ -343,7 +343,8 @@ class _ChatScreenState extends State<ChatScreen> {
                               isDarkMode: false,
                               cubb: widget.cubb,
                               chatId: widget.chat.chatId,
-                              isMe: message.senderId == AppCubit.userId,
+                              isMe: message.senderId ==
+                                  Constants.userAccount.userId,
                               isHighlighted: isHighlighted,
                             ),
                           ],
@@ -361,7 +362,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           topRight: Radius.circular(24.0),
                         ),
                       ),
-                      child: bottomBar(widget.cubb, AppCubit.userId, state,
+                      child: bottomBar(
+                          widget.cubb,
+                          Constants.userAccount.userId,
+                          state,
                           widget.cubb.replyMessage)),
                 ],
               ),

@@ -34,7 +34,7 @@ class _UserScreenState extends State<UserScreen> {
         } else if (state is AddFriendSuccessState) {
           cubb = AppCubit.get(context);
           Navigator.pop(context);
-          cubb.getMyData(cubb.userAccount!.userId);
+          cubb.getMyData();
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(state.add ? "Friend Added " : "UnFriended"),
           ));
@@ -126,17 +126,17 @@ class _UserScreenState extends State<UserScreen> {
           trailing: ElevatedButton(
               style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      cubb.userAccount!.friends.contains(user.userId)
+                      Constants.userAccount.friends.contains(user.userId)
                           ? Colors.red
                           : Colors.green),
               clipBehavior: Clip.none,
               onPressed: () {
-                cubb.userAccount!.friends.contains(user.userId)
+                Constants.userAccount.friends.contains(user.userId)
                     ? cubb.unFriend(friendUserId: user.userId)
                     : cubb.addFriend(friendUserId: user.userId);
               },
               child: Text(
-                cubb.userAccount!.friends.contains(user.userId)
+                Constants.userAccount.friends.contains(user.userId)
                     ? "Unfriend"
                     : 'Add Friend',
                 style: const TextStyle(fontSize: 10, color: Colors.white),

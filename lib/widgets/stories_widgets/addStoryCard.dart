@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_project/widgets/stories_widgets/user_content.dart';
 
+import '../../Components/constants.dart';
 import '../../cubit/app_cubit.dart';
 
 Widget addStoryCard(BuildContext context, AppCubit cubit) {
   return GestureDetector(
     onTap: () {
-      cubit.pickAndUploadStoryImage(AppCubit.userId);
+      cubit.pickAndUploadStoryImage(Constants.userAccount.userId);
     },
     child: Card(
       shape: RoundedRectangleBorder(

@@ -1,3 +1,5 @@
+import 'package:flutter_project/models/user_model.dart';
+
 abstract class AppStates {}
 
 class AppInitState extends AppStates {}
@@ -44,7 +46,10 @@ class GetUserDataFailedState extends AppStates {}
 
 class GetUserDataLoadingState extends AppStates {}
 
-class GetUserDataSuccessState extends AppStates {}
+class GetUserDataSuccessState extends AppStates {
+  UserModel user;
+  GetUserDataSuccessState({required this.user});
+}
 
 class DeleteMessageSuccessState extends AppStates {}
 
@@ -130,3 +135,16 @@ class AddFriendSuccessState extends AppStates {
 }
 
 class AddFriendLoadingState extends AppStates {}
+
+class UserSignUpSuccessState extends AppStates {
+  UserModel user;
+  UserSignUpSuccessState({required this.user});
+}
+
+class UserSignUpLoadingState extends AppStates {}
+
+class UserLoginFailedState extends AppStates {}
+
+class UserLoginSuccessState extends AppStates {}
+
+class GetAllUserDataSuccessState extends AppStates {}

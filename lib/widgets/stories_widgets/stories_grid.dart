@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../Components/constants.dart';
 import '../../cubit/app_cubit.dart';
 import '../../models/stories_model.dart';
 import 'user_story_card.dart';
@@ -17,7 +18,7 @@ Widget storiesGrid(BuildContext context, AppCubit cubit) {
     stories.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
   });
 
-  final currentUserId = AppCubit.userId;
+  final currentUserId = Constants.userAccount.userId;
   final userIds = groupedStories.keys.toList()
     ..remove(currentUserId)
     ..insert(0, currentUserId);

@@ -9,8 +9,7 @@ import 'package:flutter_project/screens/chats/chat_screen/chat_screen.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class MyChasts extends StatefulWidget {
-  MyChasts({required this.userId, super.key});
-  String userId;
+  const MyChasts({super.key});
 
   @override
   State<MyChasts> createState() => _MyChastsState();
@@ -28,7 +27,7 @@ class _MyChastsState extends State<MyChasts> {
   void initState() {
     super.initState();
     final AppCubit cubb = AppCubit.get(context);
-    cubb.getMyChats(userId: widget.userId);
+    cubb.getMyChats(userId: Constants.userAccount.userId);
   }
 
   @override
@@ -75,10 +74,10 @@ class _MyChastsState extends State<MyChasts> {
 
                             await cubb.createChat(
                                 usersNames: [
-                                  "Mahmoud Wahba",
+                                  Constants.userAccount.name,
                                   cubb.user3!.name,
                                 ],
-                                userId: AppCubit.userId,
+                                userId: Constants.userAccount.userId,
                                 receiverId: addUserChatController.text,
                                 message: messageController.text);
                           } else {
@@ -94,13 +93,12 @@ class _MyChastsState extends State<MyChasts> {
                         Navigator.pop(context);
                       }));
               debugPrint('Add');
-              print(widget.userId);
               // cubb.getUserData(AppCubit.userId, true);
               // cubb.getMyChats(userId: AppCubit.userId);
             }),
         body: RefreshIndicator(
           onRefresh: () {
-            cubb.getMyChats(userId: AppCubit.userId);
+            cubb.getMyChats(userId: Constants.userAccount.userId);
             return Future(() => null);
           },
           child: state is GetChatsLoadingState
@@ -148,10 +146,10 @@ class ChatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     AppCubit cubb = AppCubit.get(context);
 
-    String userName =
-        chat.usersNames.firstWhere(((name) => name != "Mahmoud Wahba"));
+    String userName = chat.usersNames
+        .firstWhere(((name) => name != Constants.userAccount.name));
     String userId =
-        chat.usersIds.firstWhere((id) => id != cubb.userAccount!.userId);
+        chat.usersIds.firstWhere((id) => id != Constants.userAccount.userId);
 
     return Dismissible(
       key: Key(chat.chatId),
@@ -171,7 +169,7 @@ class ChatItem extends StatelessWidget {
                         // ScaffoldMessenger.of(context)
                         //     .hideCurrentSnackBar(); // Dismiss the SnackBar
                         cubb.delete = false;
-                        cubb.getMyChats(userId: cubb.userAccount!.userId);
+                        cubb.getMyChats(userId: Constants.userAccount.userId);
                         print('chatId is ${chat.chatId}');
                       },
                       child: const Text("Undo"),
@@ -209,11 +207,9 @@ class ChatItem extends StatelessWidget {
       direction: DismissDirection.endToStart,
       child: GestureDetector(
         onTap: () {
-          cubb.currentWallpaper =
-              "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain";
-          if (cubb.userAccount!.chatWallpapers.containsKey(chat.chatId)) {
+          if (Constants.userAccount.chatWallpapers.containsKey(chat.chatId)) {
             cubb.currentWallpaper =
-                cubb.userAccount!.chatWallpapers[chat.chatId];
+                Constants.userAccount.chatWallpapers[chat.chatId];
           }
 
           cubb.getUserData(userId, false).then((value) {

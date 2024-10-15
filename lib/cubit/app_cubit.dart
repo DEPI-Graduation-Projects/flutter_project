@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,7 +17,9 @@ import 'package:flutter_project/screens/user/user_screen/user_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import '../Components/constants.dart';
 import '../models/stories_model.dart';
+import '../sharedPref/sharedPrefHelper.dart';
 import 'app_states.dart';
 
 class AppCubit extends Cubit<AppStates> {
@@ -44,6 +48,71 @@ class AppCubit extends Cubit<AppStates> {
   ///
   final CollectionReference usersRef =
       FirebaseFirestore.instance.collection('Users');
+////////////////////
+////User Sign up
+  void appSignUp(
+      {required String email,
+      required String password,
+      required String userName}) {
+    emit(UserSignUpLoadingState());
+    FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password)
+        .then((onValue) {
+      String userId =
+          '${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}';
+      FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .set(UserModel(
+                  "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain",
+                  chatWallpapers: {},
+                  name: userName,
+                  friends: [],
+                  userId: userId,
+                  status: false,
+                  email: email,
+                  password: password)
+              .toMap())
+          .then((value) {
+        CacheHelper.putUserIdValue(userId);
+
+        emit(UserSignUpSuccessState(
+            user: UserModel(
+                "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain",
+                chatWallpapers: {},
+                name: userName,
+                friends: [],
+                userId: userId,
+                status: false,
+                email: email,
+                password: password)));
+      });
+    }).catchError((error) {
+      debugPrint(error);
+    });
+  }
+
+  ///////////////////////////////////////
+  //////
+  void appLogin({required String email, required String password}) {
+    FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: email, password: password)
+        .then((onValue) async {
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .where('email', isEqualTo: email)
+          .where('password', isEqualTo: password)
+          .get()
+          .then((doc) {
+        String userId = UserModel.fromJson(doc.docs.first.data()).userId;
+        CacheHelper.putUserIdValue(userId);
+        getMyData();
+      });
+      emit(UserLoginSuccessState());
+    }).catchError((onError) {
+      emit(UserLoginFailedState());
+    });
+  }
 
   // Set the user's status to online
   Future<void> setUserOnline(String userId) async {
@@ -78,7 +147,8 @@ class AppCubit extends Cubit<AppStates> {
         if (currentUser != null) {
           print('the other user name is ${currentUser!.name}');
         }
-        emit(GetUserDataSuccessState());
+        emit(GetUserDataSuccessState(
+            user: UserModel.fromJson(users.docs.first.data())));
       });
     } catch (error) {
       emit(GetUserDataFailedState());
@@ -98,7 +168,7 @@ class AppCubit extends Cubit<AppStates> {
         String userName = doc['name'];
         userNames[userId] = userName;
       }
-      emit(GetUserDataSuccessState());
+      emit(GetAllUserDataSuccessState());
     } catch (error) {
       print('Error fetching user data: $error');
       emit(GetUserDataFailedState());
@@ -133,28 +203,33 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   ///////////
-  UserModel? userAccount;
-  Future<void> getMyData(String userId) async {
-    try {
+  Future<void> getMyData() async {
+    if (CacheHelper.getUserIdValue() != null) {
+      String id = CacheHelper.getUserIdValue()!;
       emit(GetUserDataLoadingState());
+      try {
+        // Wait for Firestore data
+        FirebaseFirestore.instance
+            .collection("Users")
+            .where('userId', isEqualTo: id)
+            .snapshots()
+            .listen((users) {
+          if (users.docs.isNotEmpty) {
+            Constants.userAccount = UserModel.fromJson(users.docs.first.data());
+            // print('user name is ${Constants.userAccount.name}');
+            emit(GetUserDataSuccessState(
+                user: UserModel.fromJson(users.docs.first.data())));
+          } else {
+            print("No user found with this ID");
+            emit(GetUserDataFailedState());
+          }
+        });
 
-      // Wait for Firestore data
-      final users = await FirebaseFirestore.instance
-          .collection("Users")
-          .where('userId', isEqualTo: userId)
-          .get();
-
-      // Assign user3 only if data is found
-      if (users.docs.isNotEmpty) {
-        userAccount = UserModel.fromJson(users.docs.first.data());
-        emit(GetUserDataSuccessState());
-      } else {
-        print("No user found with this ID");
+        // Assign user3 only if data is found
+      } catch (error) {
         emit(GetUserDataFailedState());
+        print(error);
       }
-    } catch (error) {
-      emit(GetUserDataFailedState());
-      print(error);
     }
   }
 
@@ -167,14 +242,14 @@ class AppCubit extends Cubit<AppStates> {
       // Listen to real-time updates from Firestore
       FirebaseFirestore.instance
           .collection("Users")
-          .where('userId', isNotEqualTo: userId)
+          .where('userId', isNotEqualTo: Constants.userAccount.userId)
           .snapshots()
           .listen((docUsers) {
         users = docUsers.docs
             .map((user) => UserModel.fromJson(user.data()))
             .toList();
         filteredUsers = users;
-        emit(GetUserDataSuccessState());
+        emit(GetAllUserDataSuccessState());
       });
     } catch (error) {
       emit(GetUserDataFailedState());
@@ -203,7 +278,8 @@ class AppCubit extends Cubit<AppStates> {
     emit(FilterMessagesStartState());
     filteredUsers = index == 1
         ? users
-            .where((user) => userAccount!.friends.contains(user.userId))
+            .where(
+                (user) => Constants.userAccount.friends.contains(user.userId))
             .toList()
         : users;
     choosenFilter = index;
@@ -221,7 +297,7 @@ class AppCubit extends Cubit<AppStates> {
 
       if (snapshot.docs.isNotEmpty) {
         final userModel = UserModel.fromJson(snapshot.docs[1].data());
-        emit(GetUserDataSuccessState());
+        emit(GetUserDataSuccessState(user: userModel));
         return userModel.name;
       } else {
         emit(GetUserDataFailedState());
@@ -240,7 +316,7 @@ class AppCubit extends Cubit<AppStates> {
     emit(AddFriendLoadingState());
     FirebaseFirestore.instance
         .collection('Users')
-        .doc(userAccount!.userId)
+        .doc(Constants.userAccount.userId)
         .update({
       'friends': FieldValue.arrayUnion([friendUserId])
     }).then((onValue) {
@@ -254,7 +330,7 @@ class AppCubit extends Cubit<AppStates> {
     emit(AddFriendLoadingState());
     FirebaseFirestore.instance
         .collection('Users')
-        .doc(userAccount!.userId)
+        .doc(Constants.userAccount.userId)
         .update({
       'friends': FieldValue.arrayRemove([friendUserId])
     }).then((onValue) {
@@ -264,13 +340,7 @@ class AppCubit extends Cubit<AppStates> {
 
   ////////////
   ///Change Screen (Navigation Bar)
-  final screens = [
-    MyChasts(
-      userId: userId,
-    ),
-    const UserScreen(),
-    const StoriesScreen()
-  ];
+  final screens = [const MyChasts(), const UserScreen(), const StoriesScreen()];
   int selectedIndex = 0;
 
   void changeScreen(index) {
@@ -280,14 +350,14 @@ class AppCubit extends Cubit<AppStates> {
 
   /////////////////////////
   ///used in the chat screen to change the user to test chatting in one screen
-  bool isMe = false;
-  static String userId = "22010237";
-  void changeUserId(bool isMe, context) {
-    userId = isMe ? "22010237" : "22010289";
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text("user changed $userId")));
-    emit(ChangeUserIdState());
-  }
+  // bool isMe = false;
+  // static String userId = "22010237";
+  // void changeUserId(bool isMe, context) {
+  //   userId = isMe ? "22010237" : "22010289";
+  //   ScaffoldMessenger.of(context)
+  //       .showSnackBar(SnackBar(content: Text("user changed $userId")));
+  //   emit(ChangeUserIdState());
+  // }
 
 ///////////////
   /// image picker in chat screen
@@ -554,7 +624,10 @@ class AppCubit extends Cubit<AppStates> {
 
     // Map<String, dynamic> newWallpaper = {chatId: wallpaperUrl};
 
-    FirebaseFirestore.instance.collection('Users').doc(userId).update({
+    FirebaseFirestore.instance
+        .collection('Users')
+        .doc(Constants.userAccount.userId)
+        .update({
       'chatWallpapers.$chatId': wallpaperUrl,
     }).then((onValue) {
       currentWallpaper = wallpaperUrl;
@@ -600,7 +673,7 @@ class AppCubit extends Cubit<AppStates> {
     } else {
       filteredChats = chats
           .where((chat) => chat.usersNames
-              .firstWhere((name) => name != userAccount!.name)
+              .firstWhere((name) => name != Constants.userAccount.name)
               .toString()
               .toLowerCase()
               .contains(query
@@ -652,7 +725,7 @@ class AppCubit extends Cubit<AppStates> {
   ImageProvider? getUserProfilePhoto(String userId) {
     try {
       // First, check if the user is the current user
-      if (userId == AppCubit.userId && currentUser2 != null) {
+      if (userId == Constants.userAccount.userId && currentUser2 != null) {
         return NetworkImage(currentUser2!.profilePhoto!);
       }
 

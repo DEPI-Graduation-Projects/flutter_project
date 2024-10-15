@@ -15,9 +15,9 @@ class StoriesScreen extends StatelessWidget {
         ..getStories()
         ..fetchAllUserNames(),
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.blueGrey.shade900,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.blueGrey.shade900,
           title: const Text('Stories'),
         ),
         body: BlocConsumer<AppCubit, AppStates>(

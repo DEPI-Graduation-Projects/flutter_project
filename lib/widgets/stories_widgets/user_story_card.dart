@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
 
+import '../../Components/constants.dart';
 import '../../cubit/app_cubit.dart';
 import '../../models/stories_model.dart';
 import '../../screens/stories/story_view.dart';
 import 'addStoryCard.dart';
 import 'user_content.dart';
 
-Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userStories, String userId, bool isCurrentUser) {
+Widget userStoryCard(BuildContext context, AppCubit cubit,
+    List<UserStory> userStories, String userId, bool isCurrentUser) {
   if (isCurrentUser && userStories.isEmpty) {
     return addStoryCard(context, cubit);
   }
 
   final lastStory = userStories.isNotEmpty ? userStories.first : null;
-  final hasUnseenStory = userStories.any((story) => !story.isSeenBy(AppCubit.userId));
+  final hasUnseenStory =
+      userStories.any((story) => !story.isSeenBy(Constants.userAccount.userId));
 
   return GestureDetector(
     onTap: () {
       if (userStories.isNotEmpty) {
-        print("Calling listenForNewStories for user: ${AppCubit.userId}");
-        cubit.listenForNewStories(AppCubit.userId);
+        print(
+            "Calling listenForNewStories for user: ${Constants.userAccount.userId}");
+        cubit.listenForNewStories(Constants.userAccount.userId);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -28,7 +32,7 @@ Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userS
           ),
         );
       } else if (isCurrentUser) {
-        cubit.pickAndUploadStoryImage(AppCubit.userId);
+        cubit.pickAndUploadStoryImage(Constants.userAccount.userId);
       }
     },
     child: Container(
@@ -50,15 +54,15 @@ Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userS
               borderRadius: BorderRadius.circular(10),
               child: lastStory != null
                   ? ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withOpacity(0.5),
-                  BlendMode.darken,
-                ),
-                child: Image.network(
-                  lastStory.imgURL,
-                  fit: BoxFit.cover,
-                ),
-              )
+                      colorFilter: ColorFilter.mode(
+                        Colors.black.withOpacity(0.5),
+                        BlendMode.darken,
+                      ),
+                      child: Image.network(
+                        lastStory.imgURL,
+                        fit: BoxFit.cover,
+                      ),
+                    )
                   : userContent(cubit),
             ),
             Align(
@@ -66,7 +70,9 @@ Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userS
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  isCurrentUser ? 'My Story' : (cubit.userNames[userId] ?? 'No name found'),
+                  isCurrentUser
+                      ? 'My Story'
+                      : (cubit.userNames[userId] ?? 'No name found'),
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -95,7 +101,7 @@ Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userS
                 top: 8,
                 child: GestureDetector(
                   onTap: () {
-                    cubit.pickAndUploadStoryImage(AppCubit.userId);
+                    cubit.pickAndUploadStoryImage(Constants.userAccount.userId);
                   },
                   child: const CircleAvatar(
                     radius: 16,
