@@ -173,7 +173,7 @@ class AppCubit extends Cubit<AppStates> {
         users = docUsers.docs
             .map((user) => UserModel.fromJson(user.data()))
             .toList();
-
+        filteredUsers = users;
         emit(GetUserDataSuccessState());
       });
     } catch (error) {
@@ -181,6 +181,33 @@ class AppCubit extends Cubit<AppStates> {
       print(error);
     }
     return Future(() => null);
+  }
+
+///////////////////
+  List<UserModel> filteredUsers = [];
+  void filterUsers(String query) {
+    emit(FilterMessagesStartState());
+    if (query.isEmpty) {
+      filteredUsers = users;
+    } else {
+      filteredUsers = users
+          .where((user) => user.name.toLowerCase().contains(query
+              .toLowerCase())) // Non-case-sensitive filtering and partial matching
+          .toList();
+    }
+    emit(FilterMessagesEndState());
+  }
+
+  int choosenFilter = 0;
+  void filterFriends(int index) {
+    emit(FilterMessagesStartState());
+    filteredUsers = index == 1
+        ? users
+            .where((user) => userAccount!.friends.contains(user.userId))
+            .toList()
+        : users;
+    choosenFilter = index;
+    emit(FilterMessagesEndState());
   }
 
   Future<String> getUserName(String userId) async {
@@ -205,6 +232,34 @@ class AppCubit extends Cubit<AppStates> {
       print(error);
       return error.toString();
     }
+  }
+
+  ///////////
+  ///Add friend
+  void addFriend({required String friendUserId}) {
+    emit(AddFriendLoadingState());
+    FirebaseFirestore.instance
+        .collection('Users')
+        .doc(userAccount!.userId)
+        .update({
+      'friends': FieldValue.arrayUnion([friendUserId])
+    }).then((onValue) {
+      emit(AddFriendSuccessState(add: true));
+    });
+  }
+
+////////////
+  ///unfriend
+  void unFriend({required String friendUserId}) {
+    emit(AddFriendLoadingState());
+    FirebaseFirestore.instance
+        .collection('Users')
+        .doc(userAccount!.userId)
+        .update({
+      'friends': FieldValue.arrayRemove([friendUserId])
+    }).then((onValue) {
+      emit(AddFriendSuccessState(add: false));
+    });
   }
 
   ////////////

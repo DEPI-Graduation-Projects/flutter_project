@@ -123,3 +123,10 @@ class GetStorySeenBySuccessState extends AppStates {}
 class GetStorySeenByErrorState extends AppStates {
   GetStorySeenByErrorState(String e);
 }
+
+class AddFriendSuccessState extends AppStates {
+  bool add;
+  AddFriendSuccessState({required this.add});
+}
+
+class AddFriendLoadingState extends AppStates {}

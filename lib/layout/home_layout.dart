@@ -1,8 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:curved_labeled_navigation_bar/curved_navigation_bar.dart';
+import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_project/Components/components.dart';
+import 'package:flutter_project/Components/constants.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
+import 'package:flutter_project/screens/user/my_account/user_details_screen.dart';
 
 class HomeLayout extends StatefulWidget {
   final AppCubit cubb;
@@ -16,6 +20,7 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
   String userId = "22010237";
   bool isMe = false;
   bool setOnline = true;
+  final GlobalKey<CurvedNavigationBarState> _bottomNavigationKey = GlobalKey();
 
   @override
   void initState() {
@@ -54,78 +59,72 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
     return BlocConsumer<AppCubit, AppStates>(
       listener: (context, state) {},
       builder: (context, state) => Scaffold(
-        backgroundColor: Colors.grey.shade900,
+        backgroundColor: Constants.appThirColor,
         appBar: AppBar(
-          backgroundColor: Colors.grey.shade900,
-          elevation: 1,
+          backgroundColor: Constants.appThirColor,
           title: const Text(
             "Link Up ",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           actions: [
-            IconButton(onPressed: () {}, icon: const Icon(Icons.search))
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const UserDetailsScreen()));
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  radius: 27,
+                  child: CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.white,
+                    child: CachedNetworkImage(
+                        imageUrl: widget.cubb.userAccount!.profilePhoto ??
+                            "https://cdn.pixabay.com/photo/2017/02/23/13/05/avatar-2092113_1280.png"),
+                  ),
+                ),
+              ),
+            )
           ],
+        ),
+        bottomNavigationBar: CurvedNavigationBar(
+          key: _bottomNavigationKey,
+          index: widget.cubb.selectedIndex,
+          items: const [
+            CurvedNavigationBarItem(
+              child: Icon(Icons.chat),
+              label: 'Chats',
+            ),
+            CurvedNavigationBarItem(
+              child: Icon(Icons.person),
+              label: 'Users',
+            ),
+            CurvedNavigationBarItem(
+              child: Icon(Icons.update),
+              label: 'Stories',
+            ),
+          ],
+          color: Constants.appThirColor,
+          buttonBackgroundColor: Colors.black,
+          backgroundColor: Constants.appPrimaryColor,
+          animationCurve: Curves.easeInOut,
+          animationDuration: const Duration(milliseconds: 600),
+          onTap: (index) {
+            widget.cubb.changeScreen(index);
+          },
+          letIndexChange: (index) => true,
         ),
         body: SafeArea(
           child: SizedBox(
             width: double.infinity,
             height: double.infinity,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            child: Column(
+              // crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Container(
-                  width: 75,
-                  height: double.infinity,
-                  padding: const EdgeInsetsDirectional.only(end: 20, start: 5),
-                  decoration: const BoxDecoration(
-
-                      // border: BorderDirectional(
-                      //     end: BorderSide(
-                      //         style: BorderStyle.none, color: Colors.black)
-                      //         )
-                      ),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.2,
-                      ),
-                      SideNavigationBarItem(
-                        onClick: () {
-                          widget.cubb.changeScreen(0);
-                        },
-                        icon: Icons.chat,
-                        label: "Chats",
-                        isSelected: widget.cubb.selectedIndex == 0,
-                      ),
-                      const SizedBox(height: 15),
-                      SideNavigationBarItem(
-                        onClick: () {
-                          widget.cubb.changeScreen(1);
-                        },
-                        icon: Icons.person,
-                        label: "Users",
-                        isSelected: widget.cubb.selectedIndex == 1,
-                      ),
-                      const SizedBox(height: 15),
-                      SideNavigationBarItem(
-                        onClick: () {
-                          widget.cubb.changeScreen(2);
-                        },
-                        icon: Icons.update,
-                        label: "Stories",
-                        isSelected: widget.cubb.selectedIndex == 2,
-                      ),
-                      const SizedBox(height: 15),
-                      IconButton(
-                          onPressed: () {
-                            // setState(() {
-                            //   changeUser();
-                            // });
-                          },
-                          icon: const Icon(Icons.swap_calls))
-                    ],
-                  ),
-                ),
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
@@ -139,8 +138,8 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
                               5, 6), // Controls the shadow's position
                         )
                       ],
-                      border:
-                          Border.all(color: Colors.yellow.shade900, width: 3),
+                      border: Border.all(
+                          color: Constants.appPrimaryColor, width: 3),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     padding: const EdgeInsets.symmetric(
@@ -148,6 +147,56 @@ class _HomeLayoutState extends State<HomeLayout> with WidgetsBindingObserver {
                     child: widget.cubb.screens[widget.cubb.selectedIndex],
                   ),
                 ),
+                // Container(
+                //   height: 75,
+                //   width: double.infinity,
+                //   padding: const EdgeInsetsDirectional.only(end: 20, start: 5),
+                //   decoration: const BoxDecoration(
+
+                //       // border: BorderDirectional(
+                //       //     end: BorderSide(
+                //       //         style: BorderStyle.none, color: Colors.black)
+                //       //         )
+                //       ),
+                //   child: Row(
+                //     children: [
+                //       SideNavigationBarItem(
+                //         onClick: () {
+                //           widget.cubb.changeScreen(0);
+                //         },
+                //         icon: Icons.chat,
+                //         label: "Chats",
+                //         isSelected: widget.cubb.selectedIndex == 0,
+                //       ),
+                //       const SizedBox(height: 15),
+                //       SideNavigationBarItem(
+                //         onClick: () {
+                //           widget.cubb.changeScreen(1);
+                //         },
+                //         icon: Icons.person,
+                //         label: "Friends",
+                //         isSelected: widget.cubb.selectedIndex == 1,
+                //       ),
+                //       const SizedBox(height: 15),
+                //       SideNavigationBarItem(
+                //         onClick: () {
+                //           widget.cubb.changeScreen(2);
+                //         },
+                //         icon: Icons.update,
+                //         label: "Stories",
+                //         isSelected: widget.cubb.selectedIndex == 2,
+                //       ),
+                //       const SizedBox(height: 15),
+                //       // IconButton(
+                //       //     onPressed: () {
+                //       //       // setState(() {
+                //       //       //   changeUser();
+                //       //       // });
+                //       //     },
+                //       //     icon: const Icon(Icons.swap_calls))
+                //     ],
+                //   ),
+                // ),
               ],
             ),
           ),

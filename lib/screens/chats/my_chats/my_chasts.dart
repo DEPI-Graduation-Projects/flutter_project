@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/Components/components.dart';
+import 'package:flutter_project/Components/constants.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
 import 'package:flutter_project/models/chat_model.dart';
@@ -55,7 +56,7 @@ class _MyChastsState extends State<MyChasts> {
       builder: (context, state) => Scaffold(
         backgroundColor: Colors.blueGrey.shade900,
         floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.amber.shade500,
+            backgroundColor: Constants.appPrimaryColor,
             child: const Icon(Icons.add),
             onPressed: () {
               showDialog(
@@ -227,14 +228,12 @@ class ChatItem extends StatelessWidget {
           });
         },
         child: Card(
-          margin: const EdgeInsets.all(1),
-          color: Colors.amber.shade500,
+          margin: const EdgeInsets.symmetric(horizontal: 1, vertical: 3),
+          color: Constants.appThirColor,
           child: ListTile(
             leading: const CircleAvatar(
-              backgroundColor: Colors.grey,
               radius: 30,
               child: Icon(
-                color: Colors.white,
                 Icons.person,
                 size: 40,
               ),
@@ -246,9 +245,7 @@ class ChatItem extends StatelessWidget {
             subtitle: Text(
               chat.lastMessage,
               style: const TextStyle(
-                  color: Colors.white,
-                  overflow: TextOverflow.ellipsis,
-                  fontSize: 15),
+                  overflow: TextOverflow.ellipsis, fontSize: 15),
             ),
             trailing: Text(AppCubit.formatTime(chat.lastMessageTime)),
           ),

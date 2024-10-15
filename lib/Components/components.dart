@@ -56,7 +56,7 @@ class SideNavigationBarItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 14,
-            color: isSelected ? Colors.orange.shade900 : Colors.grey,
+            color: isSelected ? Colors.yellow : Colors.grey,
           ),
         ),
       ],
@@ -127,6 +127,7 @@ class DefaultTextField extends StatelessWidget {
             controller: controller,
             maxLines: maxLines ?? 1,
             onChanged: onChanged,
+            style: const TextStyle(color: Colors.black),
             validator: (value) {
               if (value!.isEmpty) {
                 return '$errStr is required';
@@ -235,10 +236,10 @@ class DialogBox extends StatelessWidget {
           children: [
             TextFormField(
               controller: controller1,
-              style: const TextStyle(color: Colors.black),
+              // style: const TextStyle(color: Colors.black),
               decoration: InputDecoration(
                   labelText: 'Add a new User',
-                  labelStyle: const TextStyle(color: Colors.black),
+                  // labelStyle: const TextStyle(color: Colors.black),
                   enabledBorder: _border,
                   focusedBorder: _border,
                   border: _border),
@@ -256,10 +257,10 @@ class DialogBox extends StatelessWidget {
             ),
             TextFormField(
               controller: controller2,
-              style: const TextStyle(color: Colors.black),
+              // style: const TextStyle(color: Colors.black),
               decoration: InputDecoration(
                   labelText: 'Write your message',
-                  labelStyle: const TextStyle(color: Colors.black),
+                  // labelStyle: const TextStyle(color: Colors.black),
                   enabledBorder: _border,
                   focusedBorder: _border,
                   border: _border),

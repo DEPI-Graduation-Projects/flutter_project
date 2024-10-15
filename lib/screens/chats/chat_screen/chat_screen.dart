@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/Components/components.dart';
+import 'package:flutter_project/Components/constants.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
 import 'package:flutter_project/models/chat_model.dart';
@@ -55,34 +56,6 @@ class _ChatScreenState extends State<ChatScreen> {
     widget.cubb
         .getChatMessages(userId: AppCubit.userId, chatId: widget.chat.chatId);
   }
-
-  @override
-  void dispose() {
-    // Mark the screen as inactive when leaving
-
-    // Stop listening for new messages
-
-    _scrollController.dispose();
-    super.dispose();
-  }
-  // void listenForNewMessages(String userId) {
-  //   _messageSubscription = widget.cubb.listenForNewMessages(widget.chat.chatId, userId).listen((snapshot) {
-  //     if (isChatScreenActive) {
-  //       markMessagesAsSeen(snapshot); // Mark messages as seen
-  //     }
-  //   });
-  // }
-
-  // // Function to mark messages as seen (customize according to your logic)
-  // void markMessagesAsSeen(QuerySnapshot snapshot) {
-  //   for (var doc in snapshot.docs) {
-  //     var message = doc.data();
-  //     // Check if the message is not seen and mark it as seen
-  //     if (message['status'] != 'seen') {
-  //       widget.cubb.markMessageAsSeen(doc.id, widget.chat.chatId);
-  //     }
-  //   }
-  // }
 
   String? highlightedMessageId;
 
@@ -137,7 +110,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   Container(
                     padding: const EdgeInsets.all(8.0),
                     decoration: BoxDecoration(
-                      color: Colors.amber.shade600,
+                      color: Constants.appPrimaryColor,
                     ),
                     child: Row(
                       children: [
@@ -165,7 +138,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       ? CircleAvatar(
                                           radius: 8,
                                           backgroundColor:
-                                              Colors.amber.shade600,
+                                              Constants.appPrimaryColor,
                                           child: CircleAvatar(
                                             radius: 7,
                                             backgroundColor:
@@ -516,7 +489,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 icon: Icon(
                   Icons.send_rounded,
                   size: 32,
-                  color: Colors.amber.shade600,
+                  color: Constants.appPrimaryColor,
                 ),
                 onPressed: () async {
                   if (chatController.text.isNotEmpty || cubb.img != null) {
@@ -546,7 +519,7 @@ class _ChatScreenState extends State<ChatScreen> {
           icon: Icon(
             Icons.add_photo_alternate_rounded,
             size: 32.0,
-            color: Colors.amber.shade600,
+            color: Constants.appPrimaryColor,
           ),
           onPressed: () {
             cubb.pickChatImage(ImageSource.gallery);
