@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../Components/constants.dart';
-import '../../cubit/app_cubit.dart';
 import '../../cubit/story_cubit.dart';
 import '../../models/stories_model.dart';
 import 'user_story_card.dart';
@@ -26,11 +25,10 @@ Widget storiesGrid(BuildContext context, StoryCubit cubit) {
 
   return GridView.builder(
     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      childAspectRatio: 0.75,
-      mainAxisSpacing: 4,
-      crossAxisSpacing: 4
-    ),
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4),
     itemCount: userIds.length,
     itemBuilder: (context, index) {
       final userId = userIds[index];

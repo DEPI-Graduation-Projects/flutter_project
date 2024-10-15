@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
+
 import '../../Components/constants.dart';
 import '../../cubit/story_cubit.dart';
 
@@ -27,9 +27,11 @@ class SeenList extends StatelessWidget {
               title: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.remove_red_eye, color: Colors.white, size: 20),
+                  const Icon(Icons.remove_red_eye,
+                      color: Colors.white, size: 20),
                   const SizedBox(width: 8),
-                  Text(seenCount.toString(), style: const TextStyle(color: Colors.white)),
+                  Text(seenCount.toString(),
+                      style: const TextStyle(color: Colors.white)),
                 ],
               ),
             ),
@@ -40,9 +42,12 @@ class SeenList extends StatelessWidget {
     );
   }
 
-  Widget _buildBody(BuildContext context, AppStates state, StoryCubit StoryCubit) {
+  Widget _buildBody(
+      BuildContext context, AppStates state, StoryCubit StoryCubit) {
     if (state is GetStorySeenByLoadingState) {
-      return Center(child: CircularProgressIndicator(backgroundColor: Colors.white, color: Constants.appPrimaryColor));
+      return Center(
+          child: CircularProgressIndicator(
+              backgroundColor: Colors.white, color: Constants.appPrimaryColor));
     } else if (state is GetStorySeenByErrorState) {
       return Center(child: Text('Error: $state'));
     } else {
@@ -64,8 +69,7 @@ class SeenList extends StatelessWidget {
                 height: MediaQuery.of(context).size.height * 0.1,
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    color: Colors.white.withOpacity(0.3)
-                ),
+                    color: Colors.white.withOpacity(0.3)),
                 child: Padding(
                   padding: const EdgeInsets.only(left: 8.0),
                   child: Row(
@@ -73,15 +77,18 @@ class SeenList extends StatelessWidget {
                       CircleAvatar(
                         backgroundColor: Colors.white.withOpacity(0.3),
                         radius: 25,
-                        backgroundImage: StoryCubit.getUserProfilePhoto(list[index]),
+                        backgroundImage:
+                            StoryCubit.getUserProfilePhoto(list[index]),
                         child: StoryCubit.currentUser?.profilePhoto == null
-                            ? const Icon(Icons.person, color: Colors.white, size: 25)
+                            ? const Icon(Icons.person,
+                                color: Colors.white, size: 25)
                             : null,
                       ),
                       const SizedBox(width: 10),
                       Text(
                         StoryCubit.userNames?[list[index]] ?? 'No name found',
-                        style: const TextStyle(fontSize: 16, color: Colors.white),
+                        style:
+                            const TextStyle(fontSize: 16, color: Colors.white),
                       ),
                     ],
                   ),

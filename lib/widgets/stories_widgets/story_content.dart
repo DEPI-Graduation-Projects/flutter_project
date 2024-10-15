@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../../Components/constants.dart';
 import '../../cubit/story_cubit.dart';
 import '../../models/stories_model.dart';
-import '../../cubit/app_cubit.dart';
 
 class StoryContent extends StatelessWidget {
   final List<UserStory> stories;
@@ -39,7 +40,7 @@ class StoryContent extends StatelessWidget {
               top: 10,
               left: 15,
               child: Text(
-                stories[index].userId == AppCubit.userId
+                stories[index].userId == Constants.userAccount.userId
                     ? 'My Story'
                     : '${StoryCubit.get(context).userNames?[stories[index].userId]}\'s Story',
                 style: const TextStyle(

@@ -40,7 +40,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       },
       builder: (context, state) => Scaffold(
-        appBar: AppBar(title: const Text('Sign Up')),
+        appBar: AppBar(
+            title: Text('Sign Up',
+                style: TextStyle(
+                  color: Constants.appPrimaryColor,
+                ))),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Form(
@@ -123,7 +127,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Sign Up', style: TextStyle(fontSize: 18)),
+                  child: Text('Sign Up',
+                      style: TextStyle(
+                          fontSize: 18, color: Constants.appPrimaryColor)),
                 ),
               ],
             ),

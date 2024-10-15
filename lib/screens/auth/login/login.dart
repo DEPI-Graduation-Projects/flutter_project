@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/Components/constants.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
+import 'package:flutter_project/screens/auth/sign_up/signUp.dart';
 
 import '../../../layout/home_layout.dart';
 
@@ -45,11 +46,6 @@ class _LoginScreenState extends State<LoginScreen> {
           print("constants name is ${Constants.userAccount.name}");
           Navigator.pushReplacement(context,
               MaterialPageRoute(builder: (context) => HomeLayout(cubb: cubb)));
-        } else if (state is UserSignUpSuccessState) {
-          Constants.userAccount = state.user;
-          print("constants name is ${Constants.userAccount.name}");
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (context) => HomeLayout(cubb: cubb)));
         }
       },
       builder: (context, state) => Scaffold(
@@ -63,8 +59,11 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 // App Logo
                 Text(
-                  "WeLcOmE To LiNk Up ",
-                  style: TextStyle(color: Constants.appPrimaryColor),
+                  "WELCOME To LiNk Up ",
+                  style: TextStyle(
+                      color: Constants.appPrimaryColor,
+                      fontSize: 25,
+                      fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 30),
 
@@ -148,12 +147,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          cubb.appSignUp(
-                              email: _emailController.text,
-                              password: _passwordController.text,
-                              userName: "wahba");
-                        }
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const SignUpScreen()));
 
                         // Add sign up navigation
                       },

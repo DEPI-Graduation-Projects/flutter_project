@@ -8,7 +8,6 @@ import 'package:flutter_project/widgets/stories_widgets/story_progress.dart';
 import 'package:get/get.dart';
 
 import '../../Components/constants.dart';
-import '../../cubit/app_cubit.dart';
 import '../../cubit/app_states.dart';
 import '../../cubit/story_cubit.dart';
 import '../../models/stories_model.dart';
@@ -195,7 +194,7 @@ class StoryViewState extends State<StoryView> {
             },
           ),
           floatingActionButton: widget.stories[_currentIndex].userId ==
-                  AppCubit.userId
+                  Constants.userAccount.userId
               ? Stack(children: [
                   Align(
                     alignment: Alignment.bottomRight,

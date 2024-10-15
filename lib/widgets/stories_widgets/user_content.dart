@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_project/cubit/story_cubit.dart';
 
-import '../../cubit/app_cubit.dart';
-
 Widget userContent(StoryCubit cubit) {
   final userProfilePhoto = cubit.currentUser?.profilePhoto;
   if (userProfilePhoto != null) {
