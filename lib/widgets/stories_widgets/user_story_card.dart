@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project/Components/constants.dart';
 
-import '../../Components/constants.dart';
-import '../../cubit/app_cubit.dart';
+import '../../cubit/story_cubit.dart';
 import '../../models/stories_model.dart';
 import '../../screens/stories/story_view.dart';
 import 'addStoryCard.dart';
 import 'user_content.dart';
 
-Widget userStoryCard(BuildContext context, AppCubit cubit,
+Widget userStoryCard(BuildContext context, StoryCubit cubit,
     List<UserStory> userStories, String userId, bool isCurrentUser) {
   if (isCurrentUser && userStories.isEmpty) {
     return addStoryCard(context, cubit);
@@ -39,7 +39,7 @@ Widget userStoryCard(BuildContext context, AppCubit cubit,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: hasUnseenStory && !isCurrentUser
-            ? Border.all(color: Colors.blue, width: 5)
+            ? Border.all(color: Constants.appPrimaryColor, width: 3)
             : null,
       ),
       child: Card(
@@ -72,7 +72,7 @@ Widget userStoryCard(BuildContext context, AppCubit cubit,
                 child: Text(
                   isCurrentUser
                       ? 'My Story'
-                      : (cubit.userNames[userId] ?? 'No name found'),
+                      : (cubit.userNames?[userId] ?? 'No name found'),
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -87,7 +87,7 @@ Widget userStoryCard(BuildContext context, AppCubit cubit,
                 top: 8,
                 child: CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.blue,
+                  backgroundColor: Constants.appPrimaryColor,
                   child: Text(
                     '${userStories.length}',
                     style: const TextStyle(
@@ -103,10 +103,10 @@ Widget userStoryCard(BuildContext context, AppCubit cubit,
                   onTap: () {
                     cubit.pickAndUploadStoryImage(Constants.userAccount.userId);
                   },
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     radius: 16,
-                    backgroundColor: Colors.blue,
-                    child: Icon(Icons.add, color: Colors.white, size: 20),
+                    backgroundColor: Constants.appPrimaryColor,
+                    child: const Icon(Icons.add, color: Colors.white, size: 20),
                   ),
                 ),
               ),
