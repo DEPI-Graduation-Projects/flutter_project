@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project/Components/constants.dart';
 
 import '../../cubit/app_cubit.dart';
 import '../../models/stories_model.dart';
@@ -35,7 +36,7 @@ Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userS
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: hasUnseenStory && !isCurrentUser
-            ? Border.all(color: Colors.blue, width: 5)
+            ? Border.all(color: Constants.appPrimaryColor, width: 3)
             : null,
       ),
       child: Card(
@@ -81,7 +82,7 @@ Widget userStoryCard(BuildContext context, AppCubit cubit, List<UserStory> userS
                 top: 8,
                 child: CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.blue,
+                  backgroundColor: Constants.appPrimaryColor,
                   child: Text(
                     '${userStories.length}',
                     style: const TextStyle(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart' as bloc;
 import 'package:flutter_project/widgets/stories_widgets/seen_list.dart';
+import '../../Components/constants.dart';
 import '../../cubit/app_cubit.dart';
 import '../../cubit/app_states.dart';
 import '../../models/stories_model.dart';
@@ -21,7 +22,7 @@ class StoryViewState extends State<StoryView> {
   late PageController _pageController;
   late int _currentIndex;
   bool _showUserName = true;
-  final Duration _storyDuration = const Duration(seconds: 5);
+  final Duration _storyDuration = const Duration(seconds: 10);
   late List<double> _progressList;
   Timer? _timer;
   bool _isLoading = true;
@@ -77,6 +78,20 @@ class StoryViewState extends State<StoryView> {
     });
   }
 
+  void _navigateToSeenList() async {
+    _pauseProgress();
+    await Get.to(
+          () => SeenList(storyId: widget.stories[_currentIndex].id),
+      transition: Transition.downToUp,
+      duration: const Duration(milliseconds: 800),
+    );
+    if (mounted) {
+      setState(() {
+        _resumeProgress();
+      });
+    }
+  }
+
   void _goToNextStory() {
     if (_currentIndex < widget.stories.length - 1) {
       setState(() {
@@ -100,6 +115,7 @@ class StoryViewState extends State<StoryView> {
   Widget build(BuildContext context) {
     return bloc.BlocProvider(
       create: (context) => AppCubit()
+
         ..getStories()
         ..fetchAllUserNames(),
       child: SafeArea(
@@ -111,13 +127,17 @@ class StoryViewState extends State<StoryView> {
                   child: CircularProgressIndicator(),
                 );
               } else if (state is DeleteStorySuccessState) {
-                const SnackBar(
-                  content: Text('Story Deleted Successfully!'),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Story Deleted Successfully!', style: TextStyle(color: Colors.white),
+                ),
+                    backgroundColor: Constants.appThirColor,
+                ));
               } else if (state is DeleteStoryFailedState) {
-                const SnackBar(
-                  content: Text('Failed to delete story!'),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Failed to delete story!',  style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: Constants.appThirColor,
+                ));
               }
             },
             builder: (context, state) {
@@ -205,7 +225,7 @@ class StoryViewState extends State<StoryView> {
                               value: _progressList[index],
                               backgroundColor: index >= _currentIndex
                                   ? Colors.grey
-                                  : Colors.blue,
+                                  : Constants.appPrimaryColor,
                               minHeight: 4,
                             ),
                           ),
@@ -222,124 +242,78 @@ class StoryViewState extends State<StoryView> {
                   ? Stack(children: [
                       Align(
                         alignment: Alignment.bottomRight,
-                        child: FloatingActionButton(
-                          backgroundColor: Colors.blue,
-                          onPressed: () {
-                            AppCubit.get(context).deleteStory(
-                                storyId: widget.stories[_currentIndex].id);
-                          },
-                          child: const Icon(Icons.delete,
-                              color: Colors.white, size: 30),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: FloatingActionButton(
+                            backgroundColor: Constants.appPrimaryColor,
+                            onPressed: () {
+                              AppCubit.get(context).deleteStory(
+                                  storyId: widget.stories[_currentIndex].id);
+                            },
+                            child: const Icon(Icons.delete,
+                                color: Colors.white, size: 30),
+                          ),
                         ),
                       ),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: FutureBuilder<List<String>>(
-                          future: AppCubit.get(context)
-                              .getStorySeenBy(widget.stories[_currentIndex].id),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return ElevatedButton(
-                                onPressed: () {},
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStateProperty.all(Colors.blue),
-                                  shape: WidgetStateProperty.all(
-                                      RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  )),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.remove_red_eye,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 5),
-                                    Text(
-                                      'Loading...',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 17),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            } else if (snapshot.hasError) {
-                              return ElevatedButton(
-                                onPressed: () {},
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStateProperty.all(Colors.blue),
-                                  shape: WidgetStateProperty.all(
-                                      RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  )),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.remove_red_eye,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 5),
-                                    Text(
-                                      'Error',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 17),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            } else {
-                              final seenCount = snapshot.data?.length ?? 0;
-                              return ElevatedButton(
-                                onPressed: () {
-                                  _timer?.cancel();
-                                  Get.to(
-                                      SeenList(widget.stories[_currentIndex].id,
-                                          seenCount),
-                                      transition: Transition.downToUp,
-                                      duration: const Duration(seconds: 1));
-                                  // Navigator.push(context, MaterialPageRoute(builder: (context) => SeenList(widget.stories[_currentIndex].id)));
-                                },
-                                style: ButtonStyle(
-                                  backgroundColor:
-                                      WidgetStateProperty.all(Colors.blue),
-                                  shape: WidgetStateProperty.all(
-                                      RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  )),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.remove_red_eye,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      '$seenCount',
-                                      style: const TextStyle(
-                                          color: Colors.white, fontSize: 17),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      )
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: bloc.BlocBuilder<AppCubit, AppStates>(
+                    builder: (context, state) {
+                      final appCubit = context.read<AppCubit>();
+
+                      appCubit.getStorySeenBy(widget.stories[_currentIndex].id);
+                      final seenCount = appCubit.storySeenByCount(widget.stories[_currentIndex].id);
+
+                      if (state is GetStorySeenByLoadingState) {
+                        return _buildSeenButton('Loading...', null);
+                      } else if (state is GetStorySeenByErrorState) {
+                        return _buildSeenButton('Error', null);
+                      } else {
+                        return _buildSeenButton('$seenCount', _navigateToSeenList);
+                      }
+                    },
+                  ),
+                )
                     ])
                   : const SizedBox.shrink(),
         ),
       ),
     );
   }
+
+  Widget _buildSeenButton(String text, VoidCallback? onPressed) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ButtonStyle(
+          backgroundColor: MaterialStateProperty.all(Constants.appPrimaryColor),
+          shape: MaterialStateProperty.all(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.remove_red_eye,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+

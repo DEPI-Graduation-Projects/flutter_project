@@ -27,6 +27,7 @@ class AppCubit extends Cubit<AppStates> {
   Map<String, String> userNames = {};
   static const int storyExpirationDuration = 24 * 60 * 60 * 1000;
   List<UserStory> stories = [];
+  Map<String, List<String>> _storySeenByMap = {};
 ///////////formate Time
 ////
   static String formatDate(String dateTimeString) {
@@ -811,6 +812,42 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
+  Future<List<String>> getStorySeenBy(String storyId) async {
+    if (_storySeenByMap.containsKey(storyId)) {
+      emit(GetStorySeenBySuccessState());
+      return _storySeenByMap[storyId] ?? [];
+    }
+
+    emit(GetStorySeenByLoadingState());
+
+    try {
+      DocumentSnapshot storyDoc = await storiesRef.doc(storyId).get();
+
+      if (storyDoc.exists) {
+        Map<String, dynamic> data = storyDoc.data() as Map<String, dynamic>;
+        List<String> seenBy = List<String>.from(data['seenBy'] ?? []);
+        _storySeenByMap[storyId] = seenBy;
+        emit(GetStorySeenBySuccessState());
+        return seenBy;
+      } else {
+        _storySeenByMap[storyId] = [];
+        emit(GetStorySeenBySuccessState());
+        return [];
+      }
+    } catch (e) {
+      emit(GetStorySeenByErrorState(e.toString()));
+      return [];
+    }
+  }
+
+  int storySeenByCount(String storyId) {
+    return _storySeenByMap[storyId]?.length ?? 0;
+  }
+
+  List<String> storySeenByList(String storyId) {
+    return _storySeenByMap[storyId] ?? [];
+  }
+
   /// Get All Stories
   void getStories() {
     emit(GetStoriesLoadingState());
@@ -873,21 +910,21 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   ///get stories seen
-  Future<List<String>> getStorySeenBy(String storyId) async {
-    try {
-      DocumentSnapshot storyDoc = await storiesRef.doc(storyId).get();
-
-      if (storyDoc.exists) {
-        Map<String, dynamic> data = storyDoc.data() as Map<String, dynamic>;
-        List<String> seenBy = List<String>.from(data['seenBy'] ?? []);
-        emit(GetStorySeenBySuccessState());
-        return seenBy;
-      } else {
-        return [];
-      }
-    } catch (e) {
-      emit(GetStorySeenByErrorState(e.toString()));
-      return [];
-    }
-  }
+  // Future<List<String>> getStorySeenBy(String storyId) async {
+  //   try {
+  //     DocumentSnapshot storyDoc = await storiesRef.doc(storyId).get();
+  //
+  //     if (storyDoc.exists) {
+  //       Map<String, dynamic> data = storyDoc.data() as Map<String, dynamic>;
+  //       List<String> seenBy = List<String>.from(data['seenBy'] ?? []);
+  //       emit(GetStorySeenBySuccessState());
+  //       return seenBy;
+  //     } else {
+  //       return [];
+  //     }
+  //   } catch (e) {
+  //     emit(GetStorySeenByErrorState(e.toString()));
+  //     return [];
+  //   }
+  // }
 }

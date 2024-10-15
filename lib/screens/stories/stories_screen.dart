@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_project/Components/constants.dart';
 import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
 
@@ -15,42 +16,71 @@ class StoriesScreen extends StatelessWidget {
         ..getStories()
         ..fetchAllUserNames(),
       child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          title: const Text('Stories'),
-        ),
+        backgroundColor: Constants.appSecondaryColor,
         body: BlocConsumer<AppCubit, AppStates>(
           listener: (context, state) {
             if (state is PickStoryImageSuccessState) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Image selected successfully!')),
+                SnackBar(
+                  content: Text('Image selected successfully!'),
+                  backgroundColor: Constants.appThirColor,
+                ),
               );
             } else if (state is UploadStoryImageFailedState) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Failed to upload story image!')),
+                SnackBar(
+                  content: Text(
+                    'Failed to upload story image!',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: Constants.appThirColor,
+                ),
               );
             } else if (state is AddStorySuccessState) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Story uploaded successfully!')),
+                SnackBar(
+                  content: Text(
+                    'Story uploaded successfully!',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: Constants.appThirColor,
+                ),
               );
               AppCubit.get(context).getStories();
             } else if (state is GetStoriesSuccessState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Get Stories successfully!')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                  'Get Stories successfully!',
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Constants.appThirColor,
+              ));
             } else if (state is GetStoriesErrorState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Failed to get Stories!')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                  'Failed to get Stories!',
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Constants.appThirColor,
+              ));
             } else if (state is GetStoriesLoadingState) {
               const Center(child: CircularProgressIndicator());
             } else if (state is UpdateStorySuccessState) {
-              const SnackBar(
-                content: Text('Marked as Seen!'),
-              );
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                  'Marked as Seen!',
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Constants.appThirColor,
+              ));
             } else if (state is UpdateStoryErrorState) {
-              const SnackBar(
-                content: Text('Failed to Mark as Seen!'),
-              );
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                  'Failed to Mark as Seen!',
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Constants.appThirColor,
+              ));
             }
           },
           builder: (context, state) {
