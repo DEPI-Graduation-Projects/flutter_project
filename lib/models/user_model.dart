@@ -7,6 +7,7 @@ class UserModel {
   final List<dynamic> friends;
   final String email;
   final String password;
+  final List<String> mutedUsers;
 
   UserModel(this.profilePhoto,
       {required this.friends,
@@ -15,7 +16,9 @@ class UserModel {
       required this.userId,
       required this.chatWallpapers,
       required this.email,
-      required this.password});
+      required this.password,
+      List<String>? mutedUsers,
+      }) : mutedUsers = mutedUsers ?? [];
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(json['profilePhoto'],
@@ -27,7 +30,8 @@ class UserModel {
             ? Map<String, dynamic>.from(json['chatWallpapers'])
             : {},
         email: json['email'],
-        password: json['password']);
+        password: json['password'],
+      mutedUsers: List<String>.from(json['mutedUsers'] ?? []),);
   }
 
   Map<String, dynamic> toMap() {
@@ -39,7 +43,8 @@ class UserModel {
       'chatWallpapers': chatWallpapers,
       'profilePhoto': profilePhoto,
       'email': email,
-      'password': password
+      'password': password,
+      'mutedUsers': mutedUsers,
     };
   }
 }

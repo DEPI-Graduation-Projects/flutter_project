@@ -7,7 +7,8 @@ import '../../cubit/story_cubit.dart';
 Widget addStoryCard(BuildContext context, StoryCubit cubit) {
   return GestureDetector(
     onTap: () {
-      cubit.pickAndUploadStoryImage(Constants.userAccount.userId);
+      // Show the AlertDialog when the add icon is tapped
+      _showUploadOptionsDialog(context, cubit);
     },
     child: Card(
       shape: RoundedRectangleBorder(
@@ -47,5 +48,48 @@ Widget addStoryCard(BuildContext context, StoryCubit cubit) {
         ],
       ),
     ),
+  );
+}
+
+void _showUploadOptionsDialog(BuildContext context, StoryCubit cubit) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.grey[800],
+        title: Center(child: Text('Upload Story', style: TextStyle(color: Constants.appPrimaryColor),)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.photo_library, color: Constants.appPrimaryColor),
+              title: const Text('Upload from Gallery', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                // Close the dialog
+                Navigator.pop(context);
+                // Call the method to pick an image from the gallery
+                cubit.pickAndUploadStoryImage(Constants.userAccount.userId);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: Constants.appPrimaryColor),
+              title: const Text('Take a Photo', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                // Close the dialog
+                Navigator.pop(context);
+                // Call the method to take a photo
+                cubit.takePhotoForStoryUpload(Constants.userAccount.userId);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Constants.appPrimaryColor)),
+          ),
+        ],
+      );
+    },
   );
 }

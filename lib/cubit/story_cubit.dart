@@ -104,6 +104,37 @@ void pickAndUploadStoryImage(String userId) async {
   getStories();
 }
 
+  void takePhotoForStoryUpload(String userId) async {
+    final picker = ImagePicker();
+    emit(StoryImageLoadingState());
+
+    // Take a photo using the camera
+    await picker.pickImage(source: ImageSource.camera).then((value) async {
+      if (value != null) {
+        File storyImage = File(value.path);
+        emit(PickStoryImageSuccessState());
+
+        // Generate the storyId before uploading
+        String storyId = storiesRef.doc().id;
+
+        // Upload the photo to storage and get the URL
+        String storyImageUrl = await uploadStoryImage(storyImage, storyId);
+        if (storyImageUrl.isNotEmpty) {
+          // Add the story data to Firestore
+          await addStory(
+              userId: userId, storyId: storyId, imageUrl: storyImageUrl);
+        }
+      } else {
+        emit(PickStoryImageFailedState());
+      }
+    }).catchError((error) {
+      emit(PickStoryImageFailedState());
+      print("Error taking story photo: $error");
+    });
+
+    getStories();
+  }
+
 /// upload an image
 Future<String> uploadStoryImage(File imageFile, String storyId) async {
   emit(UploadStoryImageLoadingState());
@@ -208,35 +239,35 @@ List<String> storySeenByList(String storyId) {
   return _storySeenByMap[storyId] ?? [];
 }
 
-/// Get All Stories
-void getStories() {
-  emit(GetStoriesLoadingState());
-  deleteExpiredStoriesFromBackend();
-
-  try {
-    storiesRef
-        .orderBy('timeStamp', descending: true)
-        .snapshots()
-        .listen((snapshot) {
-      stories = snapshot.docs.map((doc) {
-        final timestampString = doc['timeStamp'] as String;
-        DateTime timeStampDateTime = DateTime.parse(timestampString);
-        return UserStory(
-          id: doc['id'] ?? '',
-          userId: doc['userId'] ?? '',
-          imgURL: doc['imgURL'] ?? '',
-          timeStamp: timeStampDateTime,
-          seenBy: List<String>.from(doc['seenBy'] ?? []),
-        );
-      }).toList();
-      emit(GetStoriesSuccessState());
-
-      deleteExpiredStoriesFromBackend();
-    });
-  } catch (e) {
-    emit(GetStoriesErrorState(e.toString()));
-  }
-}
+// /// Get All Stories
+// void getStories() {
+//   emit(GetStoriesLoadingState());
+//   deleteExpiredStoriesFromBackend();
+//
+//   try {
+//     storiesRef
+//         .orderBy('timeStamp', descending: true)
+//         .snapshots()
+//         .listen((snapshot) {
+//       stories = snapshot.docs.map((doc) {
+//         final timestampString = doc['timeStamp'] as String;
+//         DateTime timeStampDateTime = DateTime.parse(timestampString);
+//         return UserStory(
+//           id: doc['id'] ?? '',
+//           userId: doc['userId'] ?? '',
+//           imgURL: doc['imgURL'] ?? '',
+//           timeStamp: timeStampDateTime,
+//           seenBy: List<String>.from(doc['seenBy'] ?? []),
+//         );
+//       }).toList();
+//       emit(GetStoriesSuccessState());
+//
+//       deleteExpiredStoriesFromBackend();
+//     });
+//   } catch (e) {
+//     emit(GetStoriesErrorState(e.toString()));
+//   }
+// }
 
 // auto delete Story after 24 hr
 void deleteExpiredStoriesFromBackend() {
@@ -268,4 +299,172 @@ void deleteExpiredStoriesFromBackend() {
     }
   }
 }
+
+  // Future<void> muteUser(String currentUserId, String userToMuteId) async {
+  //   emit(MuteUserLoadingState());
+  //   try {
+  //     print('Attempting to mute user: $userToMuteId');
+  //     await FirebaseFirestore.instance.collection('users').doc(currentUserId).update({
+  //       'mutedUsers': FieldValue.arrayUnion([userToMuteId]),
+  //     });
+  //     print('User muted successfully');
+  //     emit(MuteUserSuccessState());
+  //   } catch (e) {
+  //     print('Error muting user: $e');
+  //     emit(MuteUserErrorState(e.toString()));
+  //   }
+  // }
+  //
+  // // Updated method to unmute a user
+  // Future<void> unmuteUser(String currentUserId, String userToUnmuteId) async {
+  //   emit(UnmuteUserLoadingState());
+  //   try {
+  //     print('Attempting to unmute user: $userToUnmuteId');
+  //     await FirebaseFirestore.instance.collection('users').doc(currentUserId).update({
+  //       'mutedUsers': FieldValue.arrayRemove([userToUnmuteId]),
+  //     });
+  //     print('User unmuted successfully');
+  //     emit(UnmuteUserSuccessState());
+  //   } catch (e) {
+  //     print('Error unmuting user: $e');
+  //     emit(UnmuteUserErrorState(e.toString()));
+  //   }
+  // }
+  //
+  // // Updated method to check if a user is muted
+  // bool isUserMuted(String userId) {
+  //   bool isMuted = currentUser?.mutedUsers.contains(userId) ?? false;
+  //   print('Checking if user $userId is muted: $isMuted');
+  //   return isMuted;
+  // }
+  //
+
+  Future<void> muteUser(String currentUserId, String userToMuteId) async {
+    emit(MuteUserLoadingState());
+    try {
+      print('Attempting to mute user: $userToMuteId');
+
+      DocumentReference userRef = FirebaseFirestore.instance.collection('Users').doc(currentUserId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot userDoc = await transaction.get(userRef);
+
+        if (!userDoc.exists) {
+          print('User document does not exist, creating a new one.');
+          transaction.set(userRef, {
+            'userId': currentUserId,
+            'mutedUsers': [userToMuteId],
+          });
+        } else {
+          print('User document exists, attempting to update mutedUsers.');
+          List<String> mutedUsers = List<String>.from(userDoc['mutedUsers'] ?? []);
+
+          if (!mutedUsers.contains(userToMuteId)) {
+            print('Adding $userToMuteId to mutedUsers list.');
+            mutedUsers.add(userToMuteId);
+            transaction.update(userRef, {'mutedUsers': mutedUsers});
+          } else {
+            print('User $userToMuteId is already muted.');
+          }
+        }
+      });
+
+      // Refresh current user data after the transaction
+      await refreshCurrentUserData(currentUserId);
+
+      print('User muted successfully');
+      emit(MuteUserSuccessState());
+    } catch (e) {
+      print('Error muting user: $e');
+      emit(MuteUserErrorState(e.toString()));
+    }
+  }
+
+  // Updated method to unmute a user
+  Future<void> unmuteUser(String currentUserId, String userToUnmuteId) async {
+    emit(UnmuteUserLoadingState());
+    try {
+      print('Attempting to unmute user: $userToUnmuteId');
+
+      DocumentReference userRef = FirebaseFirestore.instance.collection('Users').doc(currentUserId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot userDoc = await transaction.get(userRef);
+
+        if (userDoc.exists) {
+          List<String> mutedUsers = List<String>.from(userDoc['mutedUsers'] ?? []);
+          mutedUsers.remove(userToUnmuteId);
+          transaction.update(userRef, {'mutedUsers': mutedUsers});
+        }
+      });
+
+      // Refresh current user data after the transaction
+      await refreshCurrentUserData(currentUserId);
+
+      print('User unmuted successfully');
+      emit(UnmuteUserSuccessState());
+    } catch (e) {
+      print('Error unmuting user: $e');
+      emit(UnmuteUserErrorState(e.toString()));
+    }
+  }
+
+  // Updated method to check if a user is muted
+  bool isUserMuted(String userId) {
+    bool isMuted = currentUser?.mutedUsers.contains(userId) ?? false;
+    print('Checking if user $userId is muted: $isMuted');
+    return isMuted;
+  }
+
+  Future<void> refreshCurrentUserData(String userId) async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(userId).get();
+    if (userDoc.exists) {
+      appCubit.currentUser = UserModel.fromJson(userDoc.data() as Map<String, dynamic>);
+    } else {
+      print('User document does not exist');
+    }
+  }
+
+  void getStories() {
+    emit(GetStoriesLoadingState());
+    deleteExpiredStoriesFromBackend();
+
+    try {
+      FirebaseFirestore.instance.collection('users').doc(currentUser?.userId).snapshots().listen((userDoc) {
+        List<String> mutedUsers = List<String>.from(userDoc.data()?['mutedUsers'] ?? []);
+
+        storiesRef
+            .orderBy('timeStamp', descending: true)
+            .snapshots()
+            .listen((snapshot) {
+          stories = snapshot.docs.map((doc) {
+            final timestampString = doc['timeStamp'] as String;
+            DateTime timeStampDateTime = DateTime.parse(timestampString);
+            return UserStory(
+              id: doc['id'] ?? '',
+              userId: doc['userId'] ?? '',
+              imgURL: doc['imgURL'] ?? '',
+              timeStamp: timeStampDateTime,
+              seenBy: List<String>.from(doc['seenBy'] ?? []),
+            );
+          }).toList();
+
+          // Sort stories: non-muted first, then muted
+          stories.sort((a, b) {
+            bool isAMuted = mutedUsers.contains(a.userId);
+            bool isBMuted = mutedUsers.contains(b.userId);
+            if (isAMuted == isBMuted) {
+              return b.timeStamp.compareTo(a.timeStamp); // If mute status is the same, sort by time
+            }
+            return isAMuted ? 1 : -1; // Muted stories go last
+          });
+
+          emit(GetStoriesSuccessState());
+          deleteExpiredStoriesFromBackend();
+        });
+      });
+    } catch (e) {
+      emit(GetStoriesErrorState(e.toString()));
+    }
+  }
 }

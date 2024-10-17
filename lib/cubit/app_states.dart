@@ -160,3 +160,19 @@ class StoryUserNameVisibilityChangedState extends AppStates{}
 class StoryChangedState extends AppStates{}
 
 class StoryFinishedState extends AppStates{}
+
+class MuteUserLoadingState extends AppStates{}
+
+class MuteUserSuccessState extends AppStates{}
+
+class MuteUserErrorState extends AppStates{
+  MuteUserErrorState(String string);
+}
+
+class UnmuteUserLoadingState extends AppStates{}
+
+class UnmuteUserSuccessState extends AppStates{}
+
+class UnmuteUserErrorState extends AppStates{
+  UnmuteUserErrorState(String string);
+}
