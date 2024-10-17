@@ -128,8 +128,26 @@ class _ChatScreenState extends State<ChatScreen> {
                           height: 50,
                           child: Stack(
                             children: [
-                              const CircleAvatar(
-                                child: Icon(Icons.person),
+                              GestureDetector(
+                                onTap: () {
+                                  widget.cubb.currentUser != null
+                                      ? FullScreenImageViewer.showFullImage(
+                                          context,
+                                          widget
+                                              .cubb.currentUser!.profilePhoto!)
+                                      : null;
+                                },
+                                child: CircleAvatar(
+                                  backgroundImage: widget.cubb.currentUser !=
+                                          Constants.defaultProfilePic
+                                      ? NetworkImage(widget
+                                          .cubb.currentUser!.profilePhoto!)
+                                      : null,
+                                  child: Constants.userAccount.profilePhoto ==
+                                          Constants.defaultProfilePic
+                                      ? const Icon(Icons.person)
+                                      : null,
+                                ),
                               ),
                               Positioned(
                                   right: 6,

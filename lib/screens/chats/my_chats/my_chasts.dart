@@ -6,6 +6,7 @@ import 'package:flutter_project/cubit/app_cubit.dart';
 import 'package:flutter_project/cubit/app_states.dart';
 import 'package:flutter_project/models/chat_model.dart';
 import 'package:flutter_project/screens/chats/chat_screen/chat_screen.dart';
+import 'package:flutter_project/sharedPref/sharedPrefHelper.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class MyChasts extends StatefulWidget {
@@ -27,7 +28,7 @@ class _MyChastsState extends State<MyChasts> {
   void initState() {
     super.initState();
     final AppCubit cubb = AppCubit.get(context);
-    cubb.getMyChats(userId: Constants.userAccount.userId);
+    cubb.getMyChats(userId: CacheHelper.getUserIdValue()!);
   }
 
   @override
@@ -35,105 +36,106 @@ class _MyChastsState extends State<MyChasts> {
     final AppCubit cubb = AppCubit.get(context);
 
     return BlocConsumer<AppCubit, AppStates>(
-      listener: (context, state) {
-        if (state is CreateChatLoadingState) {
-          Navigator.pop(context);
+        listener: (context, state) {
+          if (state is CreateChatLoadingState) {
+            Navigator.pop(context);
 
-          LoadingAlert.showLoadingDialogUntilState(
-              context: context, cubit: cubb, targetState: state);
-        } else if (state is CreateChatFailState) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Chat creation failed")));
-        } else if (state is CreateChatSuccessState) {
-          Navigator.pop(context);
-          addUserChatController.clear();
-          messageController.clear();
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Chat creation Success")));
-        }
-      },
-      builder: (context, state) => Scaffold(
-        backgroundColor: Colors.blueGrey.shade900,
-        floatingActionButton: FloatingActionButton(
-            backgroundColor: Constants.appPrimaryColor,
-            child: const Icon(Icons.add),
-            onPressed: () {
-              showDialog(
-                  context: context,
-                  builder: (context) => DialogBox(
-                      controller1: addUserChatController,
-                      controller2: messageController,
-                      onSave: () async {
-                        if (await InternetConnectionChecker().hasConnection) {
-                          await cubb.getUserData2(addUserChatController.text);
+            LoadingAlert.showLoadingDialogUntilState(
+                context: context, cubit: cubb, targetState: state);
+          } else if (state is CreateChatFailState) {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Chat creation failed")));
+          } else if (state is CreateChatSuccessState) {
+            Navigator.pop(context);
+            addUserChatController.clear();
+            messageController.clear();
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Chat creation Success")));
+          }
+        },
+        builder: (context, state) => Scaffold(
+              backgroundColor: Colors.blueGrey.shade900,
+              floatingActionButton: FloatingActionButton(
+                  backgroundColor: Constants.appPrimaryColor,
+                  child: const Icon(Icons.add),
+                  onPressed: () {
+                    showDialog(
+                        context: context,
+                        builder: (context) => DialogBox(
+                            controller1: addUserChatController,
+                            controller2: messageController,
+                            onSave: () async {
+                              if (await InternetConnectionChecker()
+                                  .hasConnection) {
+                                await cubb
+                                    .getUserData2(addUserChatController.text);
 
-                          // Check if user3 is fetched
-                          if (cubb.user3 != null) {
-                            String name = cubb.user3!.name;
-                            print('my name is $name');
+                                // Check if user3 is fetched
+                                if (cubb.user3 != null) {
+                                  String name = cubb.user3!.name;
+                                  print('my name is $name');
 
-                            await cubb.createChat(
-                                usersNames: [
-                                  Constants.userAccount.name,
-                                  cubb.user3!.name,
-                                ],
-                                userId: Constants.userAccount.userId,
-                                receiverId: addUserChatController.text,
-                                message: messageController.text);
-                          } else {
-                            print("User data not found");
-                          }
-                        } else {
-                          debugPrint("No Connection");
-                        }
-                      },
-                      onCancel: () {
-                        addUserChatController.clear();
-                        messageController.clear();
-                        Navigator.pop(context);
-                      }));
-              debugPrint('Add');
-              // cubb.getUserData(AppCubit.userId, true);
-              // cubb.getMyChats(userId: AppCubit.userId);
-            }),
-        body: RefreshIndicator(
-          onRefresh: () {
-            cubb.getMyChats(userId: Constants.userAccount.userId);
-            return Future(() => null);
-          },
-          child: state is GetChatsLoadingState
-              ? const Center(
-                  child: CircularProgressIndicator(),
-                )
-              : Column(
-                  children: [
-                    DefaultTextField(
-                      type: TextInputType.name,
-                      label: "search",
-                      controller: userNameController,
-                      onChanged: (value) {
-                        cubb.filterList(value);
-                      },
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemBuilder: (context, index) {
-                          return ChatItem(
-                            index: index,
-                            chat: cubb.filteredChats[index],
-                          );
-                        },
-                        itemCount: cubb.filteredChats.length,
+                                  await cubb.createChat(
+                                      usersNames: [
+                                        Constants.userAccount.name,
+                                        cubb.user3!.name,
+                                      ],
+                                      userId: Constants.userAccount.userId,
+                                      receiverId: addUserChatController.text,
+                                      message: messageController.text);
+                                } else {
+                                  print("User data not found");
+                                }
+                              } else {
+                                debugPrint("No Connection");
+                              }
+                            },
+                            onCancel: () {
+                              addUserChatController.clear();
+                              messageController.clear();
+                              Navigator.pop(context);
+                            }));
+                    debugPrint('Add');
+                    // cubb.getUserData(AppCubit.userId, true);
+                    // cubb.getMyChats(userId: AppCubit.userId);
+                  }),
+              body: RefreshIndicator(
+                onRefresh: () {
+                  cubb.getMyChats(userId: Constants.userAccount.userId);
+                  return Future(() => null);
+                },
+                child: state is GetChatsLoadingState
+                    ? const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    : Column(
+                        children: [
+                          DefaultTextField(
+                            type: TextInputType.name,
+                            label: "search",
+                            controller: userNameController,
+                            onChanged: (value) {
+                              cubb.filterList(value);
+                            },
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemBuilder: (context, index) {
+                                return ChatItem(
+                                  index: index,
+                                  chat: cubb.filteredChats[index],
+                                );
+                              },
+                              itemCount: cubb.filteredChats.length,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
+              ),
+            ));
   }
 }
 
@@ -210,6 +212,8 @@ class ChatItem extends StatelessWidget {
           if (Constants.userAccount.chatWallpapers.containsKey(chat.chatId)) {
             cubb.currentWallpaper =
                 Constants.userAccount.chatWallpapers[chat.chatId];
+          } else {
+            cubb.currentWallpaper = Constants.chatWallpaper;
           }
 
           cubb.getUserData(userId, false).then((value) {
@@ -228,12 +232,11 @@ class ChatItem extends StatelessWidget {
           color: Constants.appThirColor,
           child: ListTile(
             leading: const CircleAvatar(
-              radius: 30,
-              child: Icon(
-                Icons.person,
-                size: 40,
-              ),
-            ),
+                radius: 30,
+                child: Icon(
+                  Icons.person,
+                  size: 40,
+                )),
             title: Text(
               userName,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),

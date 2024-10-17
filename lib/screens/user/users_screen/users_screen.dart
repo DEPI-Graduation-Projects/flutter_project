@@ -30,6 +30,7 @@ class _UsersScreenState extends State<UsersScreen> {
       builder: (context, state) => Scaffold(
         body: SafeArea(
           child: Column(
+            mainAxisSize: MainAxisSize.max,
             children: [
               Padding(
                 padding: const EdgeInsets.only(top: 50, right: 20, left: 20),
@@ -53,11 +54,12 @@ class _UsersScreenState extends State<UsersScreen> {
                   itemCount: widget.cubb.users.length,
                 ),
               ),
-              const Spacer(),
               selectedUserId != null
                   ? Padding(
                       padding: const EdgeInsets.only(bottom: 20),
                       child: Container(
+                        width: 100,
+                        height: 50,
                         decoration: BoxDecoration(
                             border: Border.all(
                                 color: Colors.amber.shade700, width: 2),
@@ -83,8 +85,6 @@ class _UsersScreenState extends State<UsersScreen> {
                                         chatId: chatId,
                                         type: false)
                                     .then((value) {
-                                    widget.cubb.currentWallpaper =
-                                        "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain";
                                     if (Constants.userAccount.chatWallpapers
                                         .containsKey(currentChat!.chatId)) {
                                       widget.cubb.currentWallpaper = Constants
@@ -92,6 +92,9 @@ class _UsersScreenState extends State<UsersScreen> {
                                           .chatWallpapers[currentChat.chatId];
                                       print(
                                           'chat current wallpaper ${widget.cubb.currentWallpaper}');
+                                    } else {
+                                      widget.cubb.currentWallpaper =
+                                          Constants.chatWallpaper;
                                     }
                                     String userId = currentChat.usersIds
                                         .firstWhere((id) =>
@@ -113,7 +116,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                   })
                                 : widget.cubb.createChat(
                                     usersNames: [
-                                        'Mahmoud Wahba ',
+                                        Constants.userAccount.name,
                                         widget.cubb.users
                                             .firstWhere((user) =>
                                                 user.userId == selectedUserId)
@@ -123,10 +126,10 @@ class _UsersScreenState extends State<UsersScreen> {
                                     receiverId: selectedUserId!,
                                     message: widget.message);
                           },
-                          label: const Text(
+                          label: Text(
                             "Send",
                             style: TextStyle(
-                                color: Colors.black,
+                                color: Constants.appPrimaryColor,
                                 fontWeight: FontWeight.bold),
                           ),
                           icon: Icon(Icons.send, color: Colors.amber.shade600),
@@ -157,8 +160,14 @@ class _UsersScreenState extends State<UsersScreen> {
           leading: const CircleAvatar(
             child: Icon(Icons.person),
           ),
-          title: Text(user.name),
-          subtitle: Text(user.userId),
+          title: Text(
+            user.name,
+            style: const TextStyle(color: Colors.black),
+          ),
+          subtitle: Text(
+            user.userId,
+            style: const TextStyle(color: Colors.black),
+          ),
         ),
       ),
     );

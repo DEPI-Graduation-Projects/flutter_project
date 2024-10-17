@@ -359,6 +359,17 @@ class AppCubit extends Cubit<AppStates> {
 
 ///////////////
   /// image picker in chat screen
+  ///
+  ///
+  ///
+  Future<void> updateUserProfile(String userId, String imaeUrl) async {
+    await usersRef.doc(userId).update({
+      'profilePhoto': imaeUrl,
+    });
+    emit(UpdateUserProfileSuccessState());
+  }
+
+/////////////////////
   File? img;
 
   void pickChatImage(ImageSource source) async {

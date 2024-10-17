@@ -129,7 +129,7 @@ class GetStorySeenByErrorState extends AppStates {
   GetStorySeenByErrorState(String e);
 }
 
-class GetStorySeenByLoadingState extends AppStates{}
+class GetStorySeenByLoadingState extends AppStates {}
 
 class AddFriendSuccessState extends AppStates {
   bool add;
@@ -150,3 +150,5 @@ class UserLoginFailedState extends AppStates {}
 class UserLoginSuccessState extends AppStates {}
 
 class GetAllUserDataSuccessState extends AppStates {}
+
+class UpdateUserProfileSuccessState extends AppStates {}
