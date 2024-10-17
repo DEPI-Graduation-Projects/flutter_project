@@ -83,18 +83,54 @@ class StoryViewState extends State<StoryView> {
     });
   }
 
-  void _navigateToSeenList() async {
+  void _navigateToSeenList(seenCount, state, storyCubit) async {
     _pauseProgress();
-    await Get.to(
-      () => SeenList(storyId: widget.stories[_currentIndex].id),
-      transition: Transition.downToUp,
-      duration: const Duration(milliseconds: 800),
-    );
-    if (mounted) {
-      setState(() {
-        _resumeProgress();
-      });
-    }
+          showModalBottomSheet(
+              backgroundColor: Constants.appThirColor,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
+              ), context: context, builder: (context) =>
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(30)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Constants.appPrimaryColor,
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(30)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 15.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.remove_red_eye,
+                                color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Text(seenCount.toString(),
+                                style: const TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    seenList(context, state, storyCubit,
+                        widget.stories[_currentIndex].id)
+                  ],
+                ),
+              )).then((_){
+            if (mounted) {
+              setState(() {
+                _resumeProgress();
+              });
+            }
+          });
+
   }
 
   void _goToNextStory() {
@@ -228,7 +264,7 @@ class StoryViewState extends State<StoryView> {
                           return buildSeenButton('Error', null);
                         } else {
                           return buildSeenButton(
-                              '$seenCount', _navigateToSeenList);
+                              '$seenCount',() => _navigateToSeenList(seenCount, state, storyCubit));
                         }
                       },
                     ),
