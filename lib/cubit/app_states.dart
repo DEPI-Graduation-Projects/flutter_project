@@ -150,3 +150,13 @@ class UserLoginFailedState extends AppStates {}
 class UserLoginSuccessState extends AppStates {}
 
 class GetAllUserDataSuccessState extends AppStates {}
+
+class StoryProgressFinishedState extends AppStates{}
+
+class StoryProgressPausedState extends AppStates{}
+
+class StoryUserNameVisibilityChangedState extends AppStates{}
+
+class StoryChangedState extends AppStates{}
+
+class StoryFinishedState extends AppStates{}

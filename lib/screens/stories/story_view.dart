@@ -213,6 +213,7 @@ class StoryViewState extends State<StoryView> {
                             stories: widget.stories,
                             pageController: _pageController,
                             currentIndex: _currentIndex,
+                            showUserName: _showUserName,
                             onPageChanged: (index) {
                               setState(() {
                                 _currentIndex = index;
