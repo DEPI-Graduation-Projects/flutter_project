@@ -9,6 +9,7 @@ class StoryContent extends StatelessWidget {
   final PageController pageController;
   final int currentIndex;
   final Function(int) onPageChanged;
+  final bool showUserName;
 
   const StoryContent({
     super.key,
@@ -16,6 +17,7 @@ class StoryContent extends StatelessWidget {
     required this.pageController,
     required this.currentIndex,
     required this.onPageChanged,
+    required this.showUserName,
   });
 
   @override
@@ -36,6 +38,7 @@ class StoryContent extends StatelessWidget {
                 ),
               ),
             ),
+            showUserName ?
             Positioned(
               top: 10,
               left: 15,
@@ -56,7 +59,7 @@ class StoryContent extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
+            ) : SizedBox.shrink(),
           ],
         );
       },
