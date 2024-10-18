@@ -13,6 +13,7 @@ class StoryCubit extends Cubit<AppStates> {
   static const int storyExpirationDuration = 24 * 60 * 60 * 1000;
   List<UserStory> stories = [];
   final Map<String, List<String>> _storySeenByMap = {};
+  final Map<String, List<String>> _storyFavByMap = {};
   AppCubit appCubit = AppCubit();
 
   static StoryCubit get(BuildContext context) => BlocProvider.of(context);
@@ -75,17 +76,15 @@ void listenForNewStories(String currentUserId) async {
 }
 
 /// Pick Story Image
-void pickAndUploadStoryImage(String userId) async {
+void pickAndUploadStoryImage(String userId, ImageSource source) async {
   final picker = ImagePicker();
   emit(StoryImageLoadingState());
 
-  // Pick an image
-  await picker.pickImage(source: ImageSource.gallery).then((value) async {
+  await picker.pickImage(source: source).then((value) async {
     if (value != null) {
       File storyImage = File(value.path);
       emit(PickStoryImageSuccessState());
 
-      // Generate the storyId before uploading
       String storyId = storiesRef.doc().id;
 
       String storyImageUrl = await uploadStoryImage(storyImage, storyId);
@@ -104,42 +103,10 @@ void pickAndUploadStoryImage(String userId) async {
   getStories();
 }
 
-  void takePhotoForStoryUpload(String userId) async {
-    final picker = ImagePicker();
-    emit(StoryImageLoadingState());
-
-    // Take a photo using the camera
-    await picker.pickImage(source: ImageSource.camera).then((value) async {
-      if (value != null) {
-        File storyImage = File(value.path);
-        emit(PickStoryImageSuccessState());
-
-        // Generate the storyId before uploading
-        String storyId = storiesRef.doc().id;
-
-        // Upload the photo to storage and get the URL
-        String storyImageUrl = await uploadStoryImage(storyImage, storyId);
-        if (storyImageUrl.isNotEmpty) {
-          // Add the story data to Firestore
-          await addStory(
-              userId: userId, storyId: storyId, imageUrl: storyImageUrl);
-        }
-      } else {
-        emit(PickStoryImageFailedState());
-      }
-    }).catchError((error) {
-      emit(PickStoryImageFailedState());
-      print("Error taking story photo: $error");
-    });
-
-    getStories();
-  }
-
 /// upload an image
 Future<String> uploadStoryImage(File imageFile, String storyId) async {
   emit(UploadStoryImageLoadingState());
   try {
-    // Use storyId as the file name in Firebase Storage
     Reference ref = FirebaseStorage.instance.ref().child('stories/$storyId');
     TaskSnapshot snapShot = await ref.putFile(imageFile);
     String downloadURL = await snapShot.ref.getDownloadURL();
@@ -166,6 +133,7 @@ Future<void> addStory(
       imgURL: imageUrl,
       timeStamp: DateTime.now(),
       seenBy: [],
+      favBy: [],
     );
 
     await storiesRef.doc(storyId).set({
@@ -174,10 +142,8 @@ Future<void> addStory(
       'imgURL': userStory.imgURL,
       'timeStamp': userStory.timeStamp.toIso8601String(),
       'seenBy': userStory.seenBy,
+      'favBy': userStory.favBy
     });
-
-    // scheduleStoryDeletion(storyId);
-
     emit(AddStorySuccessState());
   } catch (e) {
     emit(AddStoryFailedState());
@@ -239,37 +205,6 @@ List<String> storySeenByList(String storyId) {
   return _storySeenByMap[storyId] ?? [];
 }
 
-// /// Get All Stories
-// void getStories() {
-//   emit(GetStoriesLoadingState());
-//   deleteExpiredStoriesFromBackend();
-//
-//   try {
-//     storiesRef
-//         .orderBy('timeStamp', descending: true)
-//         .snapshots()
-//         .listen((snapshot) {
-//       stories = snapshot.docs.map((doc) {
-//         final timestampString = doc['timeStamp'] as String;
-//         DateTime timeStampDateTime = DateTime.parse(timestampString);
-//         return UserStory(
-//           id: doc['id'] ?? '',
-//           userId: doc['userId'] ?? '',
-//           imgURL: doc['imgURL'] ?? '',
-//           timeStamp: timeStampDateTime,
-//           seenBy: List<String>.from(doc['seenBy'] ?? []),
-//         );
-//       }).toList();
-//       emit(GetStoriesSuccessState());
-//
-//       deleteExpiredStoriesFromBackend();
-//     });
-//   } catch (e) {
-//     emit(GetStoriesErrorState(e.toString()));
-//   }
-// }
-
-// auto delete Story after 24 hr
 void deleteExpiredStoriesFromBackend() {
   print('Checking for expired stories...');
   final currentTime = DateTime.now().millisecondsSinceEpoch;
@@ -300,45 +235,7 @@ void deleteExpiredStoriesFromBackend() {
   }
 }
 
-  // Future<void> muteUser(String currentUserId, String userToMuteId) async {
-  //   emit(MuteUserLoadingState());
-  //   try {
-  //     print('Attempting to mute user: $userToMuteId');
-  //     await FirebaseFirestore.instance.collection('users').doc(currentUserId).update({
-  //       'mutedUsers': FieldValue.arrayUnion([userToMuteId]),
-  //     });
-  //     print('User muted successfully');
-  //     emit(MuteUserSuccessState());
-  //   } catch (e) {
-  //     print('Error muting user: $e');
-  //     emit(MuteUserErrorState(e.toString()));
-  //   }
-  // }
-  //
-  // // Updated method to unmute a user
-  // Future<void> unmuteUser(String currentUserId, String userToUnmuteId) async {
-  //   emit(UnmuteUserLoadingState());
-  //   try {
-  //     print('Attempting to unmute user: $userToUnmuteId');
-  //     await FirebaseFirestore.instance.collection('users').doc(currentUserId).update({
-  //       'mutedUsers': FieldValue.arrayRemove([userToUnmuteId]),
-  //     });
-  //     print('User unmuted successfully');
-  //     emit(UnmuteUserSuccessState());
-  //   } catch (e) {
-  //     print('Error unmuting user: $e');
-  //     emit(UnmuteUserErrorState(e.toString()));
-  //   }
-  // }
-  //
-  // // Updated method to check if a user is muted
-  // bool isUserMuted(String userId) {
-  //   bool isMuted = currentUser?.mutedUsers.contains(userId) ?? false;
-  //   print('Checking if user $userId is muted: $isMuted');
-  //   return isMuted;
-  // }
-  //
-
+  // mute user for stories
   Future<void> muteUser(String currentUserId, String userToMuteId) async {
     emit(MuteUserLoadingState());
     try {
@@ -369,7 +266,6 @@ void deleteExpiredStoriesFromBackend() {
         }
       });
 
-      // Refresh current user data after the transaction
       await refreshCurrentUserData(currentUserId);
 
       print('User muted successfully');
@@ -380,7 +276,7 @@ void deleteExpiredStoriesFromBackend() {
     }
   }
 
-  // Updated method to unmute a user
+  // unmute user for stories
   Future<void> unmuteUser(String currentUserId, String userToUnmuteId) async {
     emit(UnmuteUserLoadingState());
     try {
@@ -398,7 +294,6 @@ void deleteExpiredStoriesFromBackend() {
         }
       });
 
-      // Refresh current user data after the transaction
       await refreshCurrentUserData(currentUserId);
 
       print('User unmuted successfully');
@@ -409,7 +304,7 @@ void deleteExpiredStoriesFromBackend() {
     }
   }
 
-  // Updated method to check if a user is muted
+  // check user is Muted or not for stories
   bool isUserMuted(String userId) {
     bool isMuted = currentUser?.mutedUsers.contains(userId) ?? false;
     print('Checking if user $userId is muted: $isMuted');
@@ -425,6 +320,86 @@ void deleteExpiredStoriesFromBackend() {
     }
   }
 
+  // void getStories() {
+  //   emit(GetStoriesLoadingState());
+  //   deleteExpiredStoriesFromBackend();
+  //
+  //   try {
+  //     FirebaseFirestore.instance.collection('users').doc(currentUser?.userId).snapshots().listen((userDoc) {
+  //       List<String> mutedUsers = List<String>.from(userDoc.data()?['mutedUsers'] ?? []);
+  //
+  //       storiesRef
+  //           .orderBy('timeStamp', descending: true)
+  //           .snapshots()
+  //           .listen((snapshot) {
+  //         stories = snapshot.docs.map((doc) {
+  //           final timestampString = doc['timeStamp'] as String;
+  //           DateTime timeStampDateTime = DateTime.parse(timestampString);
+  //           return UserStory(
+  //             id: doc['id'] ?? '',
+  //             userId: doc['userId'] ?? '',
+  //             imgURL: doc['imgURL'] ?? '',
+  //             timeStamp: timeStampDateTime,
+  //             seenBy: List<String>.from(doc['seenBy'] ?? []),
+  //           );
+  //         }).toList();
+  //
+  //         stories.sort((a, b) {
+  //           bool isAMuted = mutedUsers.contains(a.userId);
+  //           bool isBMuted = mutedUsers.contains(b.userId);
+  //           if (isAMuted == isBMuted) {
+  //             return b.timeStamp.compareTo(a.timeStamp);
+  //           }
+  //           return isAMuted ? 1 : -1;
+  //         });
+  //
+  //         emit(GetStoriesSuccessState());
+  //         deleteExpiredStoriesFromBackend();
+  //       });
+  //     });
+  //   } catch (e) {
+  //     emit(GetStoriesErrorState(e.toString()));
+  //   }
+  // }
+
+  // Add this method to get favorite status
+  bool isStoryFavorited(String storyId, String userId) {
+    return _storyFavByMap[storyId]?.contains(userId) ?? false;
+  }
+
+  // Add this method to toggle favorite status
+  Future<void> toggleFavoriteStatus(String storyId, String userId) async {
+    emit(ToggleFavoriteLoadingState());
+    try {
+      DocumentReference storyRef = storiesRef.doc(storyId);
+      DocumentSnapshot storyDoc = await storyRef.get();
+
+      if (storyDoc.exists) {
+        List<String> favBy = List<String>.from(storyDoc['favBy'] ?? []);
+
+        if (favBy.contains(userId)) {
+          favBy.remove(userId);
+        } else {
+          favBy.add(userId);
+        }
+
+        await storyRef.update({'favBy': favBy});
+
+        _storyFavByMap[storyId] = favBy;
+        emit(ToggleFavoriteSuccessState());
+      } else {
+        emit(ToggleFavoriteErrorState('Story not found'));
+      }
+    } catch (e) {
+      emit(ToggleFavoriteErrorState(e.toString()));
+    }
+  }
+
+  List<String> storyFavByList(String storyId) {
+    return _storyFavByMap[storyId] ?? [];
+  }
+
+  // Modify the getStories method to include favBy
   void getStories() {
     emit(GetStoriesLoadingState());
     deleteExpiredStoriesFromBackend();
@@ -440,16 +415,18 @@ void deleteExpiredStoriesFromBackend() {
           stories = snapshot.docs.map((doc) {
             final timestampString = doc['timeStamp'] as String;
             DateTime timeStampDateTime = DateTime.parse(timestampString);
+            List<String> favBy = List<String>.from(doc['favBy'] ?? []);
+            _storyFavByMap[doc['id']] = favBy;
             return UserStory(
               id: doc['id'] ?? '',
               userId: doc['userId'] ?? '',
               imgURL: doc['imgURL'] ?? '',
               timeStamp: timeStampDateTime,
               seenBy: List<String>.from(doc['seenBy'] ?? []),
+              favBy: favBy,
             );
           }).toList();
 
-          // Sort stories: non-muted first, then muted
           stories.sort((a, b) {
             bool isAMuted = mutedUsers.contains(a.userId);
             bool isBMuted = mutedUsers.contains(b.userId);
@@ -461,7 +438,7 @@ void deleteExpiredStoriesFromBackend() {
 
           emit(GetStoriesSuccessState());
           deleteExpiredStoriesFromBackend();
-        });
+            });
       });
     } catch (e) {
       emit(GetStoriesErrorState(e.toString()));

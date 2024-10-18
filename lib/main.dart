@@ -8,6 +8,7 @@ import 'package:flutter_project/screens/auth/login/login.dart';
 import 'package:flutter_project/sharedPref/sharedPrefHelper.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 
+import 'cubit/story_cubit.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -26,8 +27,17 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AppCubit()..getMyData(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+        create: (context) => AppCubit()..getMyData(),
+
+      ),
+        BlocProvider<StoryCubit>(
+          create: (context) => StoryCubit()
+            ..getStories()
+            ..fetchAllUserNames(),
+        ),],
       child: BlocBuilder<AppCubit, AppStates>(
         builder: (context, state) {
           AppCubit cubb = AppCubit.get(context);
@@ -37,8 +47,8 @@ class MyApp extends StatelessWidget {
             home: CacheHelper.getUserIdValue() != null
                 ? HomeLayout(cubb: cubb)
                 : const LoginScreen(
-                    // cubb: cubb,
-                    ),
+              // cubb: cubb,
+            ),
           );
         },
       ),

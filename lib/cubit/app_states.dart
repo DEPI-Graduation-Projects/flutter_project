@@ -178,3 +178,11 @@ class UnmuteUserSuccessState extends AppStates {}
 class UnmuteUserErrorState extends AppStates {
   UnmuteUserErrorState(String string);
 }
+
+class ToggleFavoriteLoadingState extends AppStates{}
+
+class ToggleFavoriteSuccessState extends AppStates{}
+
+class ToggleFavoriteErrorState extends AppStates{
+  ToggleFavoriteErrorState(String s);
+}

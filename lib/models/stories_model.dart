@@ -6,13 +6,16 @@ class UserStory {
   final String imgURL;
   final DateTime timeStamp;
   final List<String> seenBy;
+  final List<String> favBy;
 
   UserStory(
       {required this.id,
       required this.userId,
       required this.timeStamp,
       required this.imgURL,
-      required this.seenBy});
+      required this.seenBy,
+      required this.favBy
+      });
 
   factory UserStory.fromMap(Map<String, dynamic> data, String documentId) {
     return UserStory(
@@ -20,7 +23,9 @@ class UserStory {
         userId: data['userId'] ?? '',
         imgURL: data['imgURL'] ?? '',
         timeStamp: _parseTimestamp(data['timeStamp']),
-        seenBy: List<String>.from(data['seenBy'] ?? []));
+        seenBy: List<String>.from(data['seenBy'] ?? []),
+        favBy: List<String>.from(data['favBy'] ?? [])
+    );
   }
 
   static DateTime _parseTimestamp(dynamic timestamp) {
@@ -36,5 +41,9 @@ class UserStory {
 
   bool isSeenBy(String userId) {
     return seenBy.contains(userId);
+  }
+
+  bool isFavBy(String userId) {
+    return favBy.contains(userId);
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_project/widgets/stories_widgets/upload_story.dart';
 import 'package:flutter_project/widgets/stories_widgets/user_content.dart';
 import '../../Components/constants.dart';
 import '../../cubit/app_states.dart';
@@ -11,8 +12,11 @@ import 'addStoryCard.dart';
 Widget userStoryCard(BuildContext context, StoryCubit cubit,
     List<UserStory> userStories, String userId, bool isCurrentUser) {
 
-  if (isCurrentUser && userStories.isEmpty) {
-    return addStoryCard(context, cubit);
+  if (isCurrentUser) {
+    print('userStories for current user: ${userStories.length}');
+    if (userStories.isEmpty) {
+      return addStoryCard(context, cubit);
+    }
   }
 
   final lastStory = userStories.isNotEmpty ? userStories.first : null;
@@ -48,7 +52,7 @@ Widget userStoryCard(BuildContext context, StoryCubit cubit,
               ),
             );
           } else if (isCurrentUser) {
-            cubit.pickAndUploadStoryImage(Constants.userAccount.userId);
+            showUploadOptionsDialog(context, cubit);
           }
         },
         onLongPress: () {
@@ -125,7 +129,7 @@ Widget userStoryCard(BuildContext context, StoryCubit cubit,
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
-                        return Center(child: Icon(Icons.error, color: Colors.red));
+                        return const Center(child: Icon(Icons.error, color: Colors.red));
                       },
                     ),
                   )
@@ -164,7 +168,7 @@ Widget userStoryCard(BuildContext context, StoryCubit cubit,
                     top: 8,
                     child: GestureDetector(
                       onTap: () {
-                        cubit.pickAndUploadStoryImage(Constants.userAccount.userId);
+                       showUploadOptionsDialog(context, cubit);
                       },
                       child: CircleAvatar(
                         radius: 16,
@@ -174,7 +178,7 @@ Widget userStoryCard(BuildContext context, StoryCubit cubit,
                     ),
                   ),
                 if (isMuted)
-                  Positioned(
+                  const Positioned(
                     left: 8,
                     bottom: 8,
                     child: Icon(Icons.volume_off, color: Colors.white, size: 20),

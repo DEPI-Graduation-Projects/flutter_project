@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart' as bloc;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_project/widgets/stories_widgets/seen_list.dart';
 import 'package:flutter_project/widgets/stories_widgets/story_content.dart';
 import 'package:flutter_project/widgets/stories_widgets/story_progress.dart';
-import 'package:get/get.dart';
 
 import '../../Components/constants.dart';
 import '../../cubit/app_states.dart';
@@ -93,35 +93,38 @@ class StoryViewState extends State<StoryView> {
                 ),
               ), context: context, builder: (context) =>
               Container(
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.vertical(
                       top: Radius.circular(30)),
                 ),
-                child: Column(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Constants.appPrimaryColor,
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(30)),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 15.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.remove_red_eye,
-                                color: Colors.white, size: 20),
-                            const SizedBox(width: 8),
-                            Text(seenCount.toString(),
-                                style: const TextStyle(color: Colors.white)),
-                          ],
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Constants.appPrimaryColor,
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(30)),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 15.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.remove_red_eye,
+                                  color: Colors.white, size: 20),
+                              const SizedBox(width: 8),
+                              Text(seenCount.toString(),
+                                  style: const TextStyle(color: Colors.white)),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    seenList(context, state, storyCubit,
-                        widget.stories[_currentIndex].id)
-                  ],
+                      seenList(context, state, storyCubit,
+                          widget.stories[_currentIndex].id)
+                    ],
+                  ),
                 ),
               )).then((_){
             if (mounted) {
@@ -224,31 +227,51 @@ class StoryViewState extends State<StoryView> {
                     StoryProgressBar(
                         progressList: _progressList,
                         currentIndex: _currentIndex,
-                        storyCount: widget.stories.length)
+                        storyCount: widget.stories.length),
                   ],
                 ),
               );
             },
           ),
-          floatingActionButton: widget.stories[_currentIndex].userId ==
-                  Constants.userAccount.userId
-              ? Stack(children: [
+          floatingActionButton: Stack(children: [
                   Align(
                     alignment: Alignment.bottomRight,
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 12.0),
-                      child: FloatingActionButton(
+                      child: widget.stories[_currentIndex].userId ==
+                          Constants.userAccount.userId
+                          ? FloatingActionButton(
                         backgroundColor: Constants.appPrimaryColor,
                         onPressed: () {
-                          StoryCubit.get(context).deleteStory(
+                          context.read<StoryCubit>().deleteStory(
                               storyId: widget.stories[_currentIndex].id);
                         },
                         child: const Icon(Icons.delete,
                             color: Colors.white, size: 30),
+                      ): BlocBuilder<StoryCubit, AppStates>(
+                        builder: (context, state) {
+                          final storyCubit = context.read<StoryCubit>();
+                          final currentStory = widget.stories[_currentIndex];
+                          final isFavorited = storyCubit.isStoryFavorited(
+                              currentStory.id, Constants.userAccount.userId);
+
+                          return FloatingActionButton(
+                            backgroundColor: Constants.appPrimaryColor,
+                            onPressed: () {
+                              storyCubit.toggleFavoriteStatus(
+                                  currentStory.id, Constants.userAccount.userId);
+                            },
+                            child: Icon(
+                              isFavorited ? Icons.favorite : Icons.favorite_border,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
-                  Align(
+            widget.stories[_currentIndex].userId ==
+                Constants.userAccount.userId? Align(
                     alignment: Alignment.bottomCenter,
                     child: bloc.BlocBuilder<StoryCubit, AppStates>(
                       builder: (context, state) {
@@ -269,9 +292,8 @@ class StoryViewState extends State<StoryView> {
                         }
                       },
                     ),
-                  )
+                  ) : SizedBox.shrink()
                 ])
-              : const SizedBox.shrink(),
         ),
       ),
     );

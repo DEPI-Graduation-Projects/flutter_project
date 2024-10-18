@@ -59,7 +59,7 @@ class StoryContent extends StatelessWidget {
                   ],
                 ),
               ),
-            ) : SizedBox.shrink(),
+            ) : const SizedBox.shrink(),
           ],
         );
       },
