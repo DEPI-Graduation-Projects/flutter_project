@@ -8,6 +8,7 @@ import 'package:flutter_project/widgets/stories_widgets/story_content.dart';
 import 'package:flutter_project/widgets/stories_widgets/story_progress.dart';
 
 import '../../Components/constants.dart';
+import '../../cubit/app_cubit.dart';
 import '../../cubit/app_states.dart';
 import '../../cubit/story_cubit.dart';
 import '../../models/stories_model.dart';
@@ -33,6 +34,7 @@ class StoryViewState extends State<StoryView> {
   bool _isLoading = true;
   Duration _remainingDuration = const Duration(seconds: 5);
   late DateTime _startTime;
+  final TextEditingController _msgController = TextEditingController();
 
   @override
   void initState() {
@@ -85,55 +87,54 @@ class StoryViewState extends State<StoryView> {
 
   void _navigateToSeenList(seenCount, state, storyCubit) async {
     _pauseProgress();
-          showModalBottomSheet(
-              backgroundColor: Constants.appThirColor,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(30),
-                ),
-              ), context: context, builder: (context) =>
-              Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(30)),
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Constants.appPrimaryColor,
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(30)),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 15.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.remove_red_eye,
-                                  color: Colors.white, size: 20),
-                              const SizedBox(width: 8),
-                              Text(seenCount.toString(),
-                                  style: const TextStyle(color: Colors.white)),
-                            ],
-                          ),
+    showModalBottomSheet(
+        backgroundColor: Constants.appThirColor,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(30),
+          ),
+        ),
+        context: context,
+        builder: (context) => Container(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Constants.appPrimaryColor,
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(30)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 15.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.remove_red_eye,
+                                color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Text(seenCount.toString(),
+                                style: const TextStyle(color: Colors.white)),
+                          ],
                         ),
                       ),
-                      seenList(context, state, storyCubit,
-                          widget.stories[_currentIndex].id)
-                    ],
-                  ),
+                    ),
+                    seenList(context, state, storyCubit,
+                        widget.stories[_currentIndex].id)
+                  ],
                 ),
-              )).then((_){
-            if (mounted) {
-              setState(() {
-                _resumeProgress();
-              });
-            }
-          });
-
+              ),
+            )).then((_) {
+      if (mounted) {
+        setState(() {
+          _resumeProgress();
+        });
+      }
+    });
   }
 
   void _goToNextStory() {
@@ -156,11 +157,13 @@ class StoryViewState extends State<StoryView> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return bloc.BlocProvider(
       create: (context) => StoryCubit()
         ..getStories()
-        ..fetchAllUserNames(),
+        ..fetchAllUserNames()
+        ..fetchAllUsers(),
       child: SafeArea(
         child: Scaffold(
           body: bloc.BlocConsumer<StoryCubit, AppStates>(
@@ -210,20 +213,20 @@ class StoryViewState extends State<StoryView> {
                   children: [
                     _isLoading
                         ? const Center(
-                            child: CircularProgressIndicator(),
-                          )
+                      child: CircularProgressIndicator(),
+                    )
                         : StoryContent(
-                            stories: widget.stories,
-                            pageController: _pageController,
-                            currentIndex: _currentIndex,
-                            showUserName: _showUserName,
-                            onPageChanged: (index) {
-                              setState(() {
-                                _currentIndex = index;
-                                _remainingDuration = _storyDuration;
-                                _startProgress();
-                              });
-                            }),
+                        stories: widget.stories,
+                        pageController: _pageController,
+                        currentIndex: _currentIndex,
+                        showUserName: _showUserName,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentIndex = index;
+                            _remainingDuration = _storyDuration;
+                            _startProgress();
+                          });
+                        }),
                     StoryProgressBar(
                         progressList: _progressList,
                         currentIndex: _currentIndex,
@@ -234,68 +237,75 @@ class StoryViewState extends State<StoryView> {
             },
           ),
           floatingActionButton: Stack(children: [
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: widget.stories[_currentIndex].userId ==
-                          Constants.userAccount.userId
-                          ? FloatingActionButton(
-                        backgroundColor: Constants.appPrimaryColor,
-                        onPressed: () {
-                          context.read<StoryCubit>().deleteStory(
-                              storyId: widget.stories[_currentIndex].id);
-                        },
-                        child: const Icon(Icons.delete,
-                            color: Colors.white, size: 30),
-                      ): BlocBuilder<StoryCubit, AppStates>(
-                        builder: (context, state) {
-                          final storyCubit = context.read<StoryCubit>();
-                          final currentStory = widget.stories[_currentIndex];
-                          final isFavorited = storyCubit.isStoryFavorited(
-                              currentStory.id, Constants.userAccount.userId);
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: widget.stories[_currentIndex].userId ==
+                    Constants.userAccount.userId
+                    ? FloatingActionButton(
+                  backgroundColor: Constants.appPrimaryColor,
+                  onPressed: () {
+                    context.read<StoryCubit>().deleteStory(
+                        storyId: widget.stories[_currentIndex].id);
+                  },
+                  child: const Icon(Icons.delete,
+                      color: Colors.white, size: 30),
+                )
+                    : BlocBuilder<StoryCubit, AppStates>(
+                  builder: (context, state) {
+                    final storyCubit = context.read<StoryCubit>();
+                    final currentStory = widget.stories[_currentIndex];
+                    final isFavorited = storyCubit.isStoryFavorited(
+                        currentStory.id, Constants.userAccount.userId);
 
-                          return FloatingActionButton(
-                            backgroundColor: Constants.appPrimaryColor,
-                            onPressed: () {
-                              storyCubit.toggleFavoriteStatus(
-                                  currentStory.id, Constants.userAccount.userId);
-                            },
-                            child: Icon(
-                              isFavorited ? Icons.favorite : Icons.favorite_border,
-                              color: Colors.white,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-            widget.stories[_currentIndex].userId ==
-                Constants.userAccount.userId? Align(
-                    alignment: Alignment.bottomCenter,
-                    child: bloc.BlocBuilder<StoryCubit, AppStates>(
-                      builder: (context, state) {
-                        final storyCubit = context.read<StoryCubit>();
-
-                        storyCubit
-                            .getStorySeenBy(widget.stories[_currentIndex].id);
-                        final seenCount = storyCubit
-                            .storySeenByCount(widget.stories[_currentIndex].id);
-
-                        if (state is GetStorySeenByLoadingState) {
-                          return buildSeenButton('Loading...', null);
-                        } else if (state is GetStorySeenByErrorState) {
-                          return buildSeenButton('Error', null);
-                        } else {
-                          return buildSeenButton(
-                              '$seenCount',() => _navigateToSeenList(seenCount, state, storyCubit));
-                        }
+                    return FloatingActionButton(
+                      backgroundColor: Constants.appPrimaryColor,
+                      onPressed: () {
+                        storyCubit.toggleFavoriteStatus(
+                            currentStory.id, Constants.userAccount.userId);
                       },
-                    ),
-                  ) : SizedBox.shrink()
-                ])
+                      child: Icon(
+                        isFavorited
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: Colors.white,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            widget.stories[_currentIndex].userId ==
+                Constants.userAccount.userId
+                ? Align(
+              alignment: Alignment.bottomCenter,
+              child: bloc.BlocBuilder<StoryCubit, AppStates>(
+                builder: (context, state) {
+                  final storyCubit = context.read<StoryCubit>();
+
+                  storyCubit.getStorySeenBy(widget.stories[_currentIndex].id);
+                  final seenCount = storyCubit.storySeenByCount(
+                      widget.stories[_currentIndex].id);
+
+                  if (state is GetStorySeenByLoadingState) {
+                    return buildSeenButton('Loading...', null);
+                  } else if (state is GetStorySeenByErrorState) {
+                    return buildSeenButton('Error', null);
+                  } else {
+                    return buildSeenButton(
+                        '$seenCount',
+                            () => _navigateToSeenList(
+                            seenCount, state, storyCubit));
+                  }
+                },
+              ),
+            )
+                : SizedBox.shrink()
+          ]),
         ),
       ),
     );
   }
+
 }

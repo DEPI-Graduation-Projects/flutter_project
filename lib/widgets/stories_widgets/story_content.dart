@@ -34,7 +34,7 @@ class StoryContent extends StatelessWidget {
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: NetworkImage(stories[index].imgURL),
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                 ),
               ),
             ),

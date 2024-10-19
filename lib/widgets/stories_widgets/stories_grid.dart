@@ -34,7 +34,10 @@ Widget storiesGrid(BuildContext context, StoryCubit cubit) {
       final userId = userIds[index];
       final userStories = groupedStories[userId] ?? [];
       final isCurrentUser = userId == currentUserId;
-      return userStoryCard(context, cubit, userStories, userId, isCurrentUser);
+      if(cubit.isFriend(userId) || isCurrentUser){
+        return userStoryCard(context, cubit, userStories, userId, isCurrentUser);
+      }
+      return null;
     },
   );
 }

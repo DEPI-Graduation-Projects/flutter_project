@@ -9,7 +9,7 @@ import '../models/stories_model.dart';
 import '../models/user_model.dart';
 import 'app_states.dart';
 
-class StoryCubit extends Cubit<AppStates> {
+class StoryCubit extends AppCubit {
   static const int storyExpirationDuration = 24 * 60 * 60 * 1000;
   List<UserStory> stories = [];
   final Map<String, List<String>> _storySeenByMap = {};
@@ -21,18 +21,24 @@ class StoryCubit extends Cubit<AppStates> {
   final CollectionReference storiesRef =
   FirebaseFirestore.instance.collection('stories');
 
-  StoryCubit(): super(AppInitState());
 
   UserModel? get currentUser => appCubit.currentUser;
-  Map<String, String>? get userNames => appCubit.userNames;
 
-  ImageProvider? getUserProfilePhoto(String userId){
-    return appCubit.getUserProfilePhoto(userId);
-  }
-
-  void fetchAllUserNames(){
-    appCubit.fetchAllUserNames();
-  }
+  // ImageProvider? getUserProfilePhoto(String userId){
+  //   return appCubit.getUserProfilePhoto(userId);
+  // }
+  //
+  // void fetchAllUserNames(){
+  //   appCubit.fetchAllUserNames();
+  // }
+  //
+  // void fetchAllUsers(){
+  //   appCubit.fetchAllUsers();
+  // }
+  //
+  // bool isFriend(String userId){
+  //   return appCubit.isFriend(userId);
+  // }
 
 ///listen to seen
 void listenForNewStories(String currentUserId) async {

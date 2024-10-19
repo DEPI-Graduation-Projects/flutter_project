@@ -186,3 +186,19 @@ class ToggleFavoriteSuccessState extends AppStates{}
 class ToggleFavoriteErrorState extends AppStates{
   ToggleFavoriteErrorState(String s);
 }
+
+class GetAllUsersLoadingState extends AppStates{}
+
+class GetAllUsersSuccessState extends AppStates{}
+
+class GetAllUsersErrorState extends AppStates{}
+
+class UserProfilePhotoLoaded extends AppStates{}
+
+class UserProfilePhotoEmpty extends AppStates{}
+
+class UserProfilePhotoLoading extends AppStates{}
+
+class UserProfilePhotoError extends AppStates{
+  UserProfilePhotoError(String string);
+}

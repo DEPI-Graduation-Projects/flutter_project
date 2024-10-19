@@ -14,6 +14,7 @@ import 'package:flutter_project/models/user_model.dart';
 import 'package:flutter_project/screens/chats/my_chats/my_chasts.dart';
 import 'package:flutter_project/screens/stories/stories_screen.dart';
 import 'package:flutter_project/screens/user/user_screen/user_screen.dart';
+import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -45,32 +46,35 @@ class AppCubit extends Cubit<AppStates> {
 
   ///
   final CollectionReference usersRef =
-      FirebaseFirestore.instance.collection('Users');
+  FirebaseFirestore.instance.collection('Users');
+
 ////////////////////
 ////User Sign up
-  void appSignUp(
-      {required String email,
-      required String password,
-      required String userName}) {
+  void appSignUp({required String email,
+    required String password,
+    required String userName}) {
     emit(UserSignUpLoadingState());
     FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: password)
         .then((onValue) {
       String userId =
-          '${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}';
+          '${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random
+          .secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure()
+          .nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(
+          10)}${Random.secure().nextInt(10)}';
       FirebaseFirestore.instance
           .collection('Users')
           .doc(userId)
           .set(UserModel(
-                  "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain",
-                  chatWallpapers: {},
-                  name: userName,
-                  friends: [],
-                  userId: userId,
-                  status: false,
-                  email: email,
-                  password: password)
-              .toMap())
+          "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain",
+          chatWallpapers: {},
+          name: userName,
+          friends: [],
+          userId: userId,
+          status: false,
+          email: email,
+          password: password)
+          .toMap())
           .then((value) {
         CacheHelper.putUserIdValue(userId);
 
@@ -102,7 +106,9 @@ class AppCubit extends Cubit<AppStates> {
           .where('password', isEqualTo: password)
           .get()
           .then((doc) {
-        String userId = UserModel.fromJson(doc.docs.first.data()).userId;
+        String userId = UserModel
+            .fromJson(doc.docs.first.data())
+            .userId;
         CacheHelper.putUserIdValue(userId);
         getMyData();
       });
@@ -159,7 +165,7 @@ class AppCubit extends Cubit<AppStates> {
   void fetchAllUserNames() async {
     try {
       var querySnapshot =
-          await FirebaseFirestore.instance.collection('Users').get();
+      await FirebaseFirestore.instance.collection('Users').get();
 
       for (var doc in querySnapshot.docs) {
         String userId = doc['userId'];
@@ -173,8 +179,21 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
+  Future<void> fetchAllUsers() async {
+    emit(GetAllUsersLoadingState());
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Users').get();
+      users = querySnapshot.docs.map((doc) => UserModel.fromJson(doc.data() as Map<String, dynamic>)).toList();
+      emit(GetAllUsersSuccessState());
+    } catch (error) {
+      print('Error fetching all users: $error');
+      emit(GetAllUsersErrorState());
+    }
+  }
+
 ///////
   UserModel? user3;
+
   Future<void> getUserData2(String userId) async {
     try {
       emit(GetUserDataLoadingState());
@@ -234,6 +253,11 @@ class AppCubit extends Cubit<AppStates> {
 /////////////////
   ///
   List<UserModel> users = [];
+
+  bool isFriend(String userId) {
+    return Constants.userAccount.friends.contains(userId);
+  }
+
   Future<void> getallUsers() {
     try {
       emit(GetUserDataLoadingState());
@@ -258,13 +282,15 @@ class AppCubit extends Cubit<AppStates> {
 
 ///////////////////
   List<UserModel> filteredUsers = [];
+
   void filterUsers(String query) {
     emit(FilterMessagesStartState());
     if (query.isEmpty) {
       filteredUsers = users;
     } else {
       filteredUsers = users
-          .where((user) => user.name.toLowerCase().contains(query
+          .where((user) =>
+          user.name.toLowerCase().contains(query
               .toLowerCase())) // Non-case-sensitive filtering and partial matching
           .toList();
     }
@@ -272,13 +298,14 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   int choosenFilter = 0;
+
   void filterFriends(int index) {
     emit(FilterMessagesStartState());
     filteredUsers = index == 1
         ? users
-            .where(
-                (user) => Constants.userAccount.friends.contains(user.userId))
-            .toList()
+        .where(
+            (user) => Constants.userAccount.friends.contains(user.userId))
+        .toList()
         : users;
     choosenFilter = index;
     emit(FilterMessagesEndState());
@@ -395,7 +422,10 @@ class AppCubit extends Cubit<AppStates> {
     String url = 'ChatImages/${Uri.file(file!.path)}';
     Reference ref = FirebaseStorage.instance
         .ref()
-        .child('ChatImages/${Uri.file(file.path).pathSegments.last}');
+        .child('ChatImages/${Uri
+        .file(file.path)
+        .pathSegments
+        .last}');
     TaskSnapshot snapShot = await ref.putFile(file);
     String downloadURL = await snapShot.ref.getDownloadURL();
     url = downloadURL;
@@ -412,16 +442,15 @@ class AppCubit extends Cubit<AppStates> {
 
   /////////////////////////
   /// send message method
-  Future<void> addMessage(
-      {required String userId,
-      required chatId,
-      String? replyMessage = "",
-      String? message,
-      required bool type,
-      String? imagaeUrl,
-      String? replyMessageId = ""}) {
+  Future<void> addMessage({required String userId,
+    required chatId,
+    String? replyMessage = "",
+    String? message,
+    required bool type,
+    String? imagaeUrl,
+    String? replyMessageId = ""}) {
     DocumentReference chatRef =
-        FirebaseFirestore.instance.collection('Chats').doc(chatId);
+    FirebaseFirestore.instance.collection('Chats').doc(chatId);
     String id = FirebaseFirestore.instance
         .collection('Chats')
         .doc(chatId)
@@ -474,6 +503,7 @@ class AppCubit extends Cubit<AppStates> {
       }
     });
   }
+
   // static bool listen = false;
 
   // void listenForNewMessages(
@@ -504,6 +534,7 @@ class AppCubit extends Cubit<AppStates> {
   ////Reply messages
   bool isReplyOn = false;
   MessageModel? replyMessage;
+
   void turnReply(reply) {
     isReplyOn = true;
     replyMessage = reply;
@@ -553,8 +584,8 @@ class AppCubit extends Cubit<AppStates> {
 
   ////////////
   ////
-  Future<void> deleteSelectedMessages(
-      List<String> documentIds, String chatId) async {
+  Future<void> deleteSelectedMessages(List<String> documentIds,
+      String chatId) async {
     WriteBatch batch = FirebaseFirestore.instance.batch();
 
     for (String docId in documentIds) {
@@ -593,17 +624,20 @@ class AppCubit extends Cubit<AppStates> {
     required List usersNames,
   }) {
     emit(CreateChatLoadingState());
-    String id = FirebaseFirestore.instance.collection('Chats').doc().id;
+    String id = FirebaseFirestore.instance
+        .collection('Chats')
+        .doc()
+        .id;
     FirebaseFirestore.instance
         .collection('Chats')
         .doc(id)
         .set(ChatModel(
-                lastMessageTime: DateTime.now().toString(),
-                usersNames: usersNames,
-                chatId: id,
-                usersIds: [userId, receiverId],
-                lastMessage: message)
-            .toMap())
+        lastMessageTime: DateTime.now().toString(),
+        usersNames: usersNames,
+        chatId: id,
+        usersIds: [userId, receiverId],
+        lastMessage: message)
+        .toMap())
         .then((onValue) {
       addMessage(
           userId: userId,
@@ -675,18 +709,20 @@ class AppCubit extends Cubit<AppStates> {
 //////////////
   ///filter chats
   List<ChatModel> filteredChats = [];
+
   void filterList(String query) {
     emit(FilterMessagesStartState());
     if (query.isEmpty) {
       filteredChats = chats;
     } else {
       filteredChats = chats
-          .where((chat) => chat.usersNames
+          .where((chat) =>
+          chat.usersNames
               .firstWhere((name) => name != Constants.userAccount.name)
               .toString()
               .toLowerCase()
               .contains(query
-                  .toLowerCase())) // Non-case-sensitive filtering and partial matching
+              .toLowerCase())) // Non-case-sensitive filtering and partial matching
           .toList();
     }
     emit(FilterMessagesEndState());
@@ -714,6 +750,7 @@ class AppCubit extends Cubit<AppStates> {
   /////////////////////////////
   /// undo method
   bool delete = true;
+
   void deleteChat({required String chatId}) {
     FirebaseFirestore.instance
         .collection('Chats')
@@ -731,23 +768,48 @@ class AppCubit extends Cubit<AppStates> {
     emit(TempDeleteState());
   }
 
+// Assuming you have a Cubit or Bloc managing the users state
   ImageProvider? getUserProfilePhoto(String userId) {
+    emit(UserProfilePhotoLoading());
+    print("Getting profile photo for user: $userId");
     try {
       // First, check if the user is the current user
       if (userId == Constants.userAccount.userId && currentUser2 != null) {
-        return NetworkImage(currentUser2!.profilePhoto!);
+        print("User is current user. Profile photo: ${currentUser2!.profilePhoto}");
+        emit(UserProfilePhotoLoaded());
+        return currentUser2!.profilePhoto != null
+            ? NetworkImage(currentUser2!.profilePhoto!)
+            : null;
       }
 
-      // If not, search in the users list
-      UserModel? user = users.firstWhere((user) => user.userId == userId);
-      if (user.profilePhoto != null) {
-        return NetworkImage(user.profilePhoto!);
+      // If the users list is empty, try to fetch all users
+      if (users.isEmpty) {
+        print("Users list is empty. Attempting to fetch all users.");
+        fetchAllUsers();
+        emit(UserProfilePhotoLoaded());
+        return null; // Return null for now, the UI should update when users are fetched
+      }
+
+      // Search in the users list
+      print("Searching for user in users list. List length: ${users.length}");
+      UserModel? user = users.firstWhereOrNull((user) => user.userId == userId);
+      if (user != null) {
+        print("User found. Profile photo: ${user.profilePhoto}");
+        emit(UserProfilePhotoLoaded());
+        return user.profilePhoto != null
+            ? NetworkImage(user.profilePhoto!)
+            : null;
+      } else {
+        print("User not found in the list.");
       }
 
       // If user not found or doesn't have a profile photo, return null
+      print("Returning null as no profile photo was found.");
+      emit(UserProfilePhotoEmpty());
       return null;
     } catch (error) {
       print('Error getting user profile photo: $error');
+      emit(UserProfilePhotoError(error.toString()));
       return null;
     }
   }

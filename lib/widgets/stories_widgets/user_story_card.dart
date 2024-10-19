@@ -117,7 +117,7 @@ Widget userStoryCard(BuildContext context, StoryCubit cubit,
                     ),
                     child: Image.network(
                       lastStory.imgURL,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return Center(
