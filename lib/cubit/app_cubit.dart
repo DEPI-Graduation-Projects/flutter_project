@@ -768,6 +768,27 @@ class AppCubit extends Cubit<AppStates> {
     emit(TempDeleteState());
   }
 
+  Future<String?> getChatId(String userId1, String userId2) async {
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('Chats')
+          .where('usersIds', arrayContainsAny: [userId1, userId2])
+          .get();
+
+      for (QueryDocumentSnapshot doc in querySnapshot.docs) {
+        List<dynamic> usersIds = doc['usersIds'];
+        if (usersIds.contains(userId1) && usersIds.contains(userId2)) {
+          return doc.id; // This is the chatId
+        }
+      }
+
+      return null; // No matching chat found
+    } catch (e) {
+      print('Error getting chat ID: $e');
+      return null;
+    }
+  }
+
 // Assuming you have a Cubit or Bloc managing the users state
   ImageProvider? getUserProfilePhoto(String userId) {
     emit(UserProfilePhotoLoading());

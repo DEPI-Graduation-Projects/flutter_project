@@ -200,5 +200,11 @@ class UserProfilePhotoEmpty extends AppStates{}
 class UserProfilePhotoLoading extends AppStates{}
 
 class UserProfilePhotoError extends AppStates{
-  UserProfilePhotoError(String string);
+  UserProfilePhotoError(String s);
+}
+
+class StoryReplySuccess extends AppStates{}
+
+class StoryReplyFailure extends AppStates{
+  StoryReplyFailure(String s);
 }

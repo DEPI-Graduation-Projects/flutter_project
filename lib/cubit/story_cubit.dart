@@ -450,4 +450,25 @@ void deleteExpiredStoriesFromBackend() {
       emit(GetStoriesErrorState(e.toString()));
     }
   }
+
+  Future<void> replyToStory({
+    required String storyId,
+    required String replyingUserId,
+    required String replyContent,
+  }) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('stories')
+          .doc(storyId)
+          .collection('Replies')
+          .add({
+        'replyingUserId': replyingUserId,
+        'content': replyContent,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      emit(StoryReplySuccess());
+    } catch (e) {
+      emit(StoryReplyFailure(e.toString()));
+    }
+  }
 }
