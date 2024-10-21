@@ -3,13 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart' as bloc;
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_project/models/chat_model.dart';
 import 'package:flutter_project/widgets/stories_widgets/bottom_bar_story_view.dart';
 import 'package:flutter_project/widgets/stories_widgets/seen_list.dart';
 import 'package:flutter_project/widgets/stories_widgets/story_content.dart';
 import 'package:flutter_project/widgets/stories_widgets/story_progress.dart';
 
-import '../../Components/components.dart';
 import '../../Components/constants.dart';
 import '../../cubit/app_cubit.dart';
 import '../../cubit/app_states.dart';
@@ -172,32 +170,30 @@ class StoryViewState extends State<StoryView> {
     String? chatId = await _getChatId(currentStory.userId);
 
     storyCubit.addMessage(
-      userId: Constants.userAccount.userId,
-      chatId: chatId,
-      type: false,
-      replyMessage: widget.stories[_currentIndex].id,
-      replyMessageId: currentStory.id,
-      imagaeUrl: widget.stories[_currentIndex].imgURL,
-      message: _replyController.text
-    );
+        userId: Constants.userAccount.userId,
+        chatId: chatId,
+        type: false,
+        replyMessage: widget.stories[_currentIndex].id,
+        replyMessageId: currentStory.id,
+        imagaeUrl: widget.stories[_currentIndex].imgURL,
+        message: _replyController.text);
 
     _replyController.clear();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Reply sent!')),
+      const SnackBar(content: Text('Reply sent!')),
     );
   }
 
   Future<String?> _getChatId(String otherUserId) async {
     final appCubit = context.read<AppCubit>();
-    return await appCubit.getChatId(
-        Constants.userAccount.userId, otherUserId);
+    return await appCubit.getChatId(Constants.userAccount.userId, otherUserId);
   }
 
   @override
   @override
   Widget build(BuildContext context) {
-    final isCurrentUser = widget.stories[_currentIndex].userId ==
-        Constants.userAccount.userId;
+    final isCurrentUser =
+        widget.stories[_currentIndex].userId == Constants.userAccount.userId;
 
     return bloc.BlocProvider(
       create: (context) => StoryCubit()
@@ -277,58 +273,59 @@ class StoryViewState extends State<StoryView> {
               );
             },
           ),
-          floatingActionButton:  isCurrentUser
+          floatingActionButton: isCurrentUser
               ? Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Delete button aligned to the bottom-right
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: FloatingActionButton(
-                    backgroundColor: Constants.appPrimaryColor,
-                    onPressed: () {
-                      context.read<StoryCubit>().deleteStory(
-                          storyId: widget.stories[_currentIndex].id);
-                    },
-                    child: const Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                      size: 30,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Delete button aligned to the bottom-right
+                    Align(
+                      alignment: Alignment.bottomRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: FloatingActionButton(
+                          backgroundColor: Constants.appPrimaryColor,
+                          onPressed: () {
+                            context.read<StoryCubit>().deleteStory(
+                                storyId: widget.stories[_currentIndex].id);
+                          },
+                          child: const Icon(
+                            Icons.delete,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
 
-              // Seen count button at the bottom-center
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: BlocBuilder<StoryCubit, AppStates>(
-                  builder: (context, state) {
-                    final storyCubit = context.read<StoryCubit>();
-                    storyCubit.getStorySeenBy(widget.stories[_currentIndex].id);
-                    final seenCount = storyCubit
-                        .storySeenByCount(widget.stories[_currentIndex].id);
+                    // Seen count button at the bottom-center
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: BlocBuilder<StoryCubit, AppStates>(
+                        builder: (context, state) {
+                          final storyCubit = context.read<StoryCubit>();
+                          storyCubit
+                              .getStorySeenBy(widget.stories[_currentIndex].id);
+                          final seenCount = storyCubit.storySeenByCount(
+                              widget.stories[_currentIndex].id);
 
-                    if (state is GetStorySeenByLoadingState) {
-                      return buildSeenButton('Loading...', null);
-                    } else if (state is GetStorySeenByErrorState) {
-                      return buildSeenButton('Error', null);
-                    } else {
-                      return buildSeenButton(
-                        '$seenCount',
-                            () => _navigateToSeenList(seenCount, state, storyCubit),
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
-          )
-          // If not the current user, display reply input and favorite button
+                          if (state is GetStorySeenByLoadingState) {
+                            return buildSeenButton('Loading...', null);
+                          } else if (state is GetStorySeenByErrorState) {
+                            return buildSeenButton('Error', null);
+                          } else {
+                            return buildSeenButton(
+                              '$seenCount',
+                              () => _navigateToSeenList(
+                                  seenCount, state, storyCubit),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                )
+              // If not the current user, display reply input and favorite button
               : bottomNav(context, _replyController, _sendReply, _currentIndex),
-
         ),
       ),
     );

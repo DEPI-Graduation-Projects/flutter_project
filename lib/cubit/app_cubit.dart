@@ -46,35 +46,33 @@ class AppCubit extends Cubit<AppStates> {
 
   ///
   final CollectionReference usersRef =
-  FirebaseFirestore.instance.collection('Users');
+      FirebaseFirestore.instance.collection('Users');
 
 ////////////////////
 ////User Sign up
-  void appSignUp({required String email,
-    required String password,
-    required String userName}) {
+  void appSignUp(
+      {required String email,
+      required String password,
+      required String userName}) {
     emit(UserSignUpLoadingState());
     FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: password)
         .then((onValue) {
       String userId =
-          '${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random
-          .secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure()
-          .nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(
-          10)}${Random.secure().nextInt(10)}';
+          '${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}${Random.secure().nextInt(10)}';
       FirebaseFirestore.instance
           .collection('Users')
           .doc(userId)
           .set(UserModel(
-          "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain",
-          chatWallpapers: {},
-          name: userName,
-          friends: [],
-          userId: userId,
-          status: false,
-          email: email,
-          password: password)
-          .toMap())
+                  "https://th.bing.com/th/id/OIF.csGcQuy19CVl9ZrjLxBflw?rs=1&pid=ImgDetMain",
+                  chatWallpapers: {},
+                  name: userName,
+                  friends: [],
+                  userId: userId,
+                  status: false,
+                  email: email,
+                  password: password)
+              .toMap())
           .then((value) {
         CacheHelper.putUserIdValue(userId);
 
@@ -106,9 +104,7 @@ class AppCubit extends Cubit<AppStates> {
           .where('password', isEqualTo: password)
           .get()
           .then((doc) {
-        String userId = UserModel
-            .fromJson(doc.docs.first.data())
-            .userId;
+        String userId = UserModel.fromJson(doc.docs.first.data()).userId;
         CacheHelper.putUserIdValue(userId);
         getMyData();
       });
@@ -165,7 +161,7 @@ class AppCubit extends Cubit<AppStates> {
   void fetchAllUserNames() async {
     try {
       var querySnapshot =
-      await FirebaseFirestore.instance.collection('Users').get();
+          await FirebaseFirestore.instance.collection('Users').get();
 
       for (var doc in querySnapshot.docs) {
         String userId = doc['userId'];
@@ -182,8 +178,11 @@ class AppCubit extends Cubit<AppStates> {
   Future<void> fetchAllUsers() async {
     emit(GetAllUsersLoadingState());
     try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Users').get();
-      users = querySnapshot.docs.map((doc) => UserModel.fromJson(doc.data() as Map<String, dynamic>)).toList();
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('Users').get();
+      users = querySnapshot.docs
+          .map((doc) => UserModel.fromJson(doc.data() as Map<String, dynamic>))
+          .toList();
       emit(GetAllUsersSuccessState());
     } catch (error) {
       print('Error fetching all users: $error');
@@ -289,8 +288,7 @@ class AppCubit extends Cubit<AppStates> {
       filteredUsers = users;
     } else {
       filteredUsers = users
-          .where((user) =>
-          user.name.toLowerCase().contains(query
+          .where((user) => user.name.toLowerCase().contains(query
               .toLowerCase())) // Non-case-sensitive filtering and partial matching
           .toList();
     }
@@ -303,9 +301,9 @@ class AppCubit extends Cubit<AppStates> {
     emit(FilterMessagesStartState());
     filteredUsers = index == 1
         ? users
-        .where(
-            (user) => Constants.userAccount.friends.contains(user.userId))
-        .toList()
+            .where(
+                (user) => Constants.userAccount.friends.contains(user.userId))
+            .toList()
         : users;
     choosenFilter = index;
     emit(FilterMessagesEndState());
@@ -422,14 +420,12 @@ class AppCubit extends Cubit<AppStates> {
     String url = 'ChatImages/${Uri.file(file!.path)}';
     Reference ref = FirebaseStorage.instance
         .ref()
-        .child('ChatImages/${Uri
-        .file(file.path)
-        .pathSegments
-        .last}');
+        .child('ChatImages/${Uri.file(file.path).pathSegments.last}');
     TaskSnapshot snapShot = await ref.putFile(file);
     String downloadURL = await snapShot.ref.getDownloadURL();
     url = downloadURL;
     debugPrint("Url is $url");
+    emit(UploadChatImageSuccessState());
     return url;
   }
 
@@ -442,15 +438,16 @@ class AppCubit extends Cubit<AppStates> {
 
   /////////////////////////
   /// send message method
-  Future<void> addMessage({required String userId,
-    required chatId,
-    String? replyMessage = "",
-    String? message,
-    required bool type,
-    String? imagaeUrl,
-    String? replyMessageId = ""}) {
+  Future<void> addMessage(
+      {required String userId,
+      required chatId,
+      String? replyMessage = "",
+      String? message,
+      required bool type,
+      String? imagaeUrl,
+      String? replyMessageId = ""}) {
     DocumentReference chatRef =
-    FirebaseFirestore.instance.collection('Chats').doc(chatId);
+        FirebaseFirestore.instance.collection('Chats').doc(chatId);
     String id = FirebaseFirestore.instance
         .collection('Chats')
         .doc(chatId)
@@ -584,8 +581,8 @@ class AppCubit extends Cubit<AppStates> {
 
   ////////////
   ////
-  Future<void> deleteSelectedMessages(List<String> documentIds,
-      String chatId) async {
+  Future<void> deleteSelectedMessages(
+      List<String> documentIds, String chatId) async {
     WriteBatch batch = FirebaseFirestore.instance.batch();
 
     for (String docId in documentIds) {
@@ -624,20 +621,17 @@ class AppCubit extends Cubit<AppStates> {
     required List usersNames,
   }) {
     emit(CreateChatLoadingState());
-    String id = FirebaseFirestore.instance
-        .collection('Chats')
-        .doc()
-        .id;
+    String id = FirebaseFirestore.instance.collection('Chats').doc().id;
     FirebaseFirestore.instance
         .collection('Chats')
         .doc(id)
         .set(ChatModel(
-        lastMessageTime: DateTime.now().toString(),
-        usersNames: usersNames,
-        chatId: id,
-        usersIds: [userId, receiverId],
-        lastMessage: message)
-        .toMap())
+                lastMessageTime: DateTime.now().toString(),
+                usersNames: usersNames,
+                chatId: id,
+                usersIds: [userId, receiverId],
+                lastMessage: message)
+            .toMap())
         .then((onValue) {
       addMessage(
           userId: userId,
@@ -716,13 +710,12 @@ class AppCubit extends Cubit<AppStates> {
       filteredChats = chats;
     } else {
       filteredChats = chats
-          .where((chat) =>
-          chat.usersNames
+          .where((chat) => chat.usersNames
               .firstWhere((name) => name != Constants.userAccount.name)
               .toString()
               .toLowerCase()
               .contains(query
-              .toLowerCase())) // Non-case-sensitive filtering and partial matching
+                  .toLowerCase())) // Non-case-sensitive filtering and partial matching
           .toList();
     }
     emit(FilterMessagesEndState());
@@ -772,8 +765,7 @@ class AppCubit extends Cubit<AppStates> {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('Chats')
-          .where('usersIds', arrayContainsAny: [userId1, userId2])
-          .get();
+          .where('usersIds', arrayContainsAny: [userId1, userId2]).get();
 
       for (QueryDocumentSnapshot doc in querySnapshot.docs) {
         List<dynamic> usersIds = doc['usersIds'];
@@ -796,7 +788,8 @@ class AppCubit extends Cubit<AppStates> {
     try {
       // First, check if the user is the current user
       if (userId == Constants.userAccount.userId && currentUser2 != null) {
-        print("User is current user. Profile photo: ${currentUser2!.profilePhoto}");
+        print(
+            "User is current user. Profile photo: ${currentUser2!.profilePhoto}");
         emit(UserProfilePhotoLoaded());
         return currentUser2!.profilePhoto != null
             ? NetworkImage(currentUser2!.profilePhoto!)

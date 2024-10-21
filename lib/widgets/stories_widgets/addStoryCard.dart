@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_project/widgets/stories_widgets/upload_story.dart';
 import 'package:flutter_project/widgets/stories_widgets/user_content.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../Components/constants.dart';
 import '../../cubit/story_cubit.dart';

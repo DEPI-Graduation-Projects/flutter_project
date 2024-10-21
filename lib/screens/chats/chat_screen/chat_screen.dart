@@ -66,7 +66,7 @@ class _ChatScreenState extends State<ChatScreen> {
         if (state is UploadChatImageLoadingState) {
           LoadingAlert.showLoadingDialogUntilState(
               context: context, cubit: widget.cubb, targetState: state);
-        } else if (state is UpdateChatWallpapperSuccessState) {
+        } else if (state is UploadChatImageSuccessState) {
           Navigator.pop(context);
         }
         if (state is DeleteMessageSuccessState) {

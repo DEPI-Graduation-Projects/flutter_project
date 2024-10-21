@@ -38,28 +38,29 @@ class StoryContent extends StatelessWidget {
                 ),
               ),
             ),
-            showUserName ?
-            Positioned(
-              top: 10,
-              left: 15,
-              child: Text(
-                stories[index].userId == Constants.userAccount.userId
-                    ? 'My Story'
-                    : '${StoryCubit.get(context).userNames?[stories[index].userId]}\'s Story',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      blurRadius: 10.0,
-                      color: Colors.black,
-                      offset: Offset(2.0, 2.0),
+            showUserName
+                ? Positioned(
+                    top: 10,
+                    left: 15,
+                    child: Text(
+                      stories[index].userId == Constants.userAccount.userId
+                          ? 'My Story'
+                          : '${StoryCubit.get(context).userNames[stories[index].userId]}\'s Story',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 10.0,
+                            color: Colors.black,
+                            offset: Offset(2.0, 2.0),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            ) : const SizedBox.shrink(),
+                  )
+                : const SizedBox.shrink(),
           ],
         );
       },

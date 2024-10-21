@@ -179,32 +179,34 @@ class UnmuteUserErrorState extends AppStates {
   UnmuteUserErrorState(String string);
 }
 
-class ToggleFavoriteLoadingState extends AppStates{}
+class ToggleFavoriteLoadingState extends AppStates {}
 
-class ToggleFavoriteSuccessState extends AppStates{}
+class ToggleFavoriteSuccessState extends AppStates {}
 
-class ToggleFavoriteErrorState extends AppStates{
+class ToggleFavoriteErrorState extends AppStates {
   ToggleFavoriteErrorState(String s);
 }
 
-class GetAllUsersLoadingState extends AppStates{}
+class GetAllUsersLoadingState extends AppStates {}
 
-class GetAllUsersSuccessState extends AppStates{}
+class GetAllUsersSuccessState extends AppStates {}
 
-class GetAllUsersErrorState extends AppStates{}
+class GetAllUsersErrorState extends AppStates {}
 
-class UserProfilePhotoLoaded extends AppStates{}
+class UserProfilePhotoLoaded extends AppStates {}
 
-class UserProfilePhotoEmpty extends AppStates{}
+class UserProfilePhotoEmpty extends AppStates {}
 
-class UserProfilePhotoLoading extends AppStates{}
+class UserProfilePhotoLoading extends AppStates {}
 
-class UserProfilePhotoError extends AppStates{
+class UserProfilePhotoError extends AppStates {
   UserProfilePhotoError(String s);
 }
 
-class StoryReplySuccess extends AppStates{}
+class StoryReplySuccess extends AppStates {}
 
-class StoryReplyFailure extends AppStates{
+class StoryReplyFailure extends AppStates {
   StoryReplyFailure(String s);
 }
+
+class UploadChatImageSuccessState extends AppStates {}

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../Components/constants.dart';
-import '../../cubit/story_cubit.dart';
-import '../../cubit/app_states.dart';
-import 'seen_listTile.dart';
-import 'user_avatar.dart';
 
-Widget seenList(BuildContext context, AppStates state, StoryCubit storyCubit, String storyId) {
+import '../../Components/constants.dart';
+import '../../cubit/app_states.dart';
+import '../../cubit/story_cubit.dart';
+import 'seen_listTile.dart';
+
+Widget seenList(BuildContext context, AppStates state, StoryCubit storyCubit,
+    String storyId) {
   if (state is GetStorySeenByLoadingState || state is GetAllUsersLoadingState) {
     return Center(
       child: CircularProgressIndicator(
@@ -14,7 +14,8 @@ Widget seenList(BuildContext context, AppStates state, StoryCubit storyCubit, St
         color: Constants.appPrimaryColor,
       ),
     );
-  } else if (state is GetStorySeenByErrorState || state is GetAllUsersErrorState) {
+  } else if (state is GetStorySeenByErrorState ||
+      state is GetAllUsersErrorState) {
     return Center(child: Text('Error: $state'));
   }
 
@@ -45,4 +46,3 @@ Widget seenList(BuildContext context, AppStates state, StoryCubit storyCubit, St
     ),
   );
 }
-
