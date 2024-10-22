@@ -140,6 +140,7 @@ Widget userStoryCard(BuildContext context, StoryCubit cubit,
                               if (loadingProgress == null) return child;
                               return Center(
                                 child: CircularProgressIndicator(
+                                  color: Constants.appPrimaryColor,
                                   value: loadingProgress.expectedTotalBytes !=
                                           null
                                       ? loadingProgress.cumulativeBytesLoaded /

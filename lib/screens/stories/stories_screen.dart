@@ -64,7 +64,20 @@ class StoriesScreen extends StatelessWidget {
                 backgroundColor: Constants.appThirColor,
               ));
             } else if (state is GetStoriesLoadingState) {
-              const Center(child: CircularProgressIndicator());
+                  (child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    color: Constants.appPrimaryColor,
+                    value: loadingProgress.expectedTotalBytes !=
+                        null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                        (loadingProgress.expectedTotalBytes ??
+                            1)
+                        : null,
+                  ),
+                );
+              };
             } else if (state is UpdateStorySuccessState) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: const Text(

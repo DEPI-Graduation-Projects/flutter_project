@@ -40,12 +40,14 @@ class StoryViewState extends State<StoryView> {
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    _currentIndex = _findFirstUnseenStoryIndex();
     _pageController = PageController(initialPage: _currentIndex);
 
     Future.delayed(const Duration(seconds: 1), () {
       setState(() {
         _isLoading = false;
+
+        context.read<StoryCubit>().markStoryAsSeen(widget.stories[_currentIndex].id, Constants.userAccount.userId);
       });
     });
 
@@ -189,6 +191,15 @@ class StoryViewState extends State<StoryView> {
     return await appCubit.getChatId(Constants.userAccount.userId, otherUserId);
   }
 
+  int _findFirstUnseenStoryIndex() {
+    for (int i = 0; i < widget.stories.length; i++) {
+      if (!widget.stories[i].seenBy.contains(Constants.userAccount.userId)) {
+        return i;
+      }
+    }
+    return widget.initialIndex;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCurrentUser =
@@ -204,9 +215,20 @@ class StoryViewState extends State<StoryView> {
           body: bloc.BlocConsumer<StoryCubit, AppStates>(
             listener: (BuildContext context, state) {
               if (state is DeleteStoryLoadingState) {
-                const Center(
-                  child: CircularProgressIndicator(),
-                );
+                    (child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: Constants.appPrimaryColor,
+                      value: loadingProgress.expectedTotalBytes !=
+                          null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                          (loadingProgress.expectedTotalBytes ??
+                              1)
+                          : null,
+                    ),
+                  );
+                };
               } else if (state is DeleteStorySuccessState) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: const Text(
@@ -248,8 +270,8 @@ class StoryViewState extends State<StoryView> {
                 child: Stack(
                   children: [
                     _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(),
+                        ? Center(
+                            child: CircularProgressIndicator( color: Constants.appPrimaryColor,),
                           )
                         : StoryContent(
                             stories: widget.stories,
