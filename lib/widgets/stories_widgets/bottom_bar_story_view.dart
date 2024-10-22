@@ -8,49 +8,50 @@ import '../../cubit/app_states.dart';
 import '../../cubit/story_cubit.dart';
 
 Widget bottomNav(BuildContext context,
-    TextEditingController replyController, Function sendReply, int index) {
+    TextEditingController replyController, Function sendReply, String storyId) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: DefaultTextField(
-            replyOn: true,
-            height: 8,
-            type: TextInputType.text,
-            onChanged: (value) {},
-            label: "Reply",
-            controller: replyController,
-            maxLines: 2,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 15.0),
+            child: DefaultTextField(
+              replyOn: true,
+              height: 8,
+              type: TextInputType.text,
+              onChanged: (value) {},
+              label: "Reply",
+              controller: replyController,
+              maxLines: 1,
+            ),
           ),
         ),
-
-        // Send button
+        const SizedBox(width: 8),
         IconButton(
           icon: Icon(
             Icons.send_rounded,
-            size: 32,
+            size: 24,
             color: Constants.appPrimaryColor,
           ),
           onPressed: () {
             sendReply();
           },
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
         ),
-
-        // Favorite button
+        const SizedBox(width: 8),
         BlocBuilder<StoryCubit, AppStates>(
           builder: (context, state) {
             final storyCubit = context.read<StoryCubit>();
-            final currentStory = storyCubit.stories[index];
             final isFavorited = storyCubit.isStoryFavorited(
-                currentStory.id, Constants.userAccount.userId);
+                storyId, Constants.userAccount.userId);
 
             return FloatingActionButton(
               backgroundColor: Constants.appPrimaryColor,
               onPressed: () {
                 storyCubit.toggleFavoriteStatus(
-                  currentStory.id, Constants.userAccount.userId,
+                  storyId, Constants.userAccount.userId,
                 );
               },
               child: Icon(

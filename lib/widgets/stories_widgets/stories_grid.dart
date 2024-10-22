@@ -19,25 +19,29 @@ Widget storiesGrid(BuildContext context, StoryCubit cubit) {
   });
 
   final currentUserId = Constants.userAccount.userId;
-  final userIds = groupedStories.keys.toList()
-    ..remove(currentUserId)
-    ..insert(0, currentUserId);
+  final unmutedUserIds = groupedStories.keys.where((userId) =>
+  !cubit.isUserMuted(userId) && (cubit.isFriend(userId) || userId == currentUserId)
+  ).toList();
+  final mutedUserIds = groupedStories.keys.where((userId) =>
+  cubit.isUserMuted(userId) && (cubit.isFriend(userId) || userId == currentUserId)
+  ).toList();
+  unmutedUserIds.remove(currentUserId);
+  unmutedUserIds.insert(0, currentUserId);
+  mutedUserIds.sort();
+  final userIds = [...unmutedUserIds, ...mutedUserIds];
 
   return GridView.builder(
     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.75,
-        mainAxisSpacing: 4,
+        mainAxisSpacing: 12,
         crossAxisSpacing: 4),
     itemCount: userIds.length,
     itemBuilder: (context, index) {
       final userId = userIds[index];
       final userStories = groupedStories[userId] ?? [];
       final isCurrentUser = userId == currentUserId;
-      if(cubit.isFriend(userId) || isCurrentUser){
-        return userStoryCard(context, cubit, userStories, userId, isCurrentUser);
-      }
-      return null;
+      return userStoryCard(context, cubit, userStories, userId, isCurrentUser);
     },
   );
 }

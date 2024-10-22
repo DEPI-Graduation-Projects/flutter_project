@@ -1,5 +1,3 @@
-// story_progress_bar.dart
-
 import 'package:flutter/material.dart';
 import '../../Components/constants.dart';
 

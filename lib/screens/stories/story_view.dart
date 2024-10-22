@@ -29,7 +29,7 @@ class StoryViewState extends State<StoryView> {
   late PageController _pageController;
   late int _currentIndex;
   bool _showUserName = true;
-  final Duration _storyDuration = const Duration(seconds: 10);
+  final Duration _storyDuration = const Duration(seconds: 5);
   late List<double> _progressList;
   Timer? _timer;
   bool _isLoading = true;
@@ -190,7 +190,6 @@ class StoryViewState extends State<StoryView> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     final isCurrentUser =
         widget.stories[_currentIndex].userId == Constants.userAccount.userId;
@@ -261,23 +260,50 @@ class StoryViewState extends State<StoryView> {
                               setState(() {
                                 _currentIndex = index;
                                 _remainingDuration = _storyDuration;
+                                _timer?.cancel();
                                 _startProgress();
                               });
+                              final currentStory = widget.stories[_currentIndex];
+                              context.read<StoryCubit>().markStoryAsSeen(currentStory.id, Constants.userAccount.userId);
                             }),
-                    StoryProgressBar(
+                    _showUserName ? StoryProgressBar(
                         progressList: _progressList,
                         currentIndex: _currentIndex,
-                        storyCount: widget.stories.length),
+                        storyCount: widget.stories.length) : SizedBox.shrink(),
                   ],
                 ),
               );
             },
           ),
-          floatingActionButton: isCurrentUser
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          floatingActionButton: _showUserName ? isCurrentUser
+              ? Stack(
                   children: [
-                    // Delete button aligned to the bottom-right
+
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: BlocBuilder<StoryCubit, AppStates>(
+                        builder: (context, state) {
+                          final storyCubit = context.read<StoryCubit>();
+                          storyCubit
+                              .getStorySeenBy(widget.stories[_currentIndex].id);
+                          final seenCount = storyCubit.storySeenByCount(
+                              widget.stories[_currentIndex].id);
+
+                          if (state is GetStorySeenByLoadingState) {
+                            return buildSeenButton('Loading...', null);
+                          } else if (state is GetStorySeenByErrorState) {
+                            return buildSeenButton('Error', null);
+                          } else {
+                            return buildSeenButton(
+                              '$seenCount',
+                                  () => _navigateToSeenList(
+                                  seenCount, state, storyCubit),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+
                     Align(
                       alignment: Alignment.bottomRight,
                       child: Padding(
@@ -297,35 +323,9 @@ class StoryViewState extends State<StoryView> {
                       ),
                     ),
 
-                    // Seen count button at the bottom-center
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: BlocBuilder<StoryCubit, AppStates>(
-                        builder: (context, state) {
-                          final storyCubit = context.read<StoryCubit>();
-                          storyCubit
-                              .getStorySeenBy(widget.stories[_currentIndex].id);
-                          final seenCount = storyCubit.storySeenByCount(
-                              widget.stories[_currentIndex].id);
-
-                          if (state is GetStorySeenByLoadingState) {
-                            return buildSeenButton('Loading...', null);
-                          } else if (state is GetStorySeenByErrorState) {
-                            return buildSeenButton('Error', null);
-                          } else {
-                            return buildSeenButton(
-                              '$seenCount',
-                              () => _navigateToSeenList(
-                                  seenCount, state, storyCubit),
-                            );
-                          }
-                        },
-                      ),
-                    ),
                   ],
                 )
-              // If not the current user, display reply input and favorite button
-              : bottomNav(context, _replyController, _sendReply, _currentIndex),
+              : bottomNav(context, _replyController, _sendReply, widget.stories[_currentIndex].id) : SizedBox.shrink(),
         ),
       ),
     );

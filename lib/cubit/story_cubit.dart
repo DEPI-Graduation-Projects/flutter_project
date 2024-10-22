@@ -24,63 +24,6 @@ class StoryCubit extends AppCubit {
 
   UserModel? get currentUser => appCubit.currentUser;
 
-  // ImageProvider? getUserProfilePhoto(String userId){
-  //   return appCubit.getUserProfilePhoto(userId);
-  // }
-  //
-  // void fetchAllUserNames(){
-  //   appCubit.fetchAllUserNames();
-  // }
-  //
-  // void fetchAllUsers(){
-  //   appCubit.fetchAllUsers();
-  // }
-  //
-  // bool isFriend(String userId){
-  //   return appCubit.isFriend(userId);
-  // }
-
-///listen to seen
-void listenForNewStories(String currentUserId) async {
-  print("Starting listenForNewStories for user: $currentUserId");
-  FirebaseFirestore.instance.collection('stories').snapshots().listen(
-      (querySnapshot) {
-    print("Received snapshot with ${querySnapshot.docs.length} documents");
-    for (var doc in querySnapshot.docs) {
-      try {
-        UserStory story = UserStory.fromMap(doc.data(), doc.id);
-
-        print(
-            "Checking story ${story.id} - userId: ${story.userId}, seenBy: ${story.seenBy}");
-
-        if (story.userId != currentUserId && !story.isSeenBy(currentUserId)) {
-          print("Updating story ${story.id} for user $currentUserId");
-          doc.reference.update({
-            'seenBy': FieldValue.arrayUnion([currentUserId]),
-          }).then((_) {
-            print('Story ${story.id} marked as seen by $currentUserId');
-            emit(UpdateStorySuccessState());
-          }).catchError((error) {
-            print('Error updating story: $error');
-            emit(UpdateStoryErrorState(error.toString()));
-          });
-        } else if (story.userId == currentUserId) {
-          print(
-              "Story ${story.id} belongs to the current user, not marking as seen");
-        } else {
-          print("Story ${story.id} already seen by $currentUserId");
-        }
-      } catch (e) {
-        print("Error processing story: $e");
-        emit(UpdateStoryErrorState(e.toString()));
-      }
-    }
-  }, onError: (error) {
-    print("Error in listenForNewStories: $error");
-    emit(UpdateStoryErrorState(error.toString()));
-  });
-}
-
 /// Pick Story Image
 void pickAndUploadStoryImage(String userId, ImageSource source) async {
   final picker = ImagePicker();
@@ -173,6 +116,52 @@ Future<void> deleteStory({required String storyId}) async {
     print("Error deleting story from Firestore: $e");
   }
 }
+
+  ///listen to seen
+  void listenForNewStories(String currentUserId) async {
+    print("Starting listenForNewStories for user: $currentUserId");
+    FirebaseFirestore.instance.collection('stories').snapshots().listen(
+          (querySnapshot) {
+        print("Received snapshot with ${querySnapshot.docs.length} documents");
+        for (var doc in querySnapshot.docs) {
+          try {
+            UserStory story = UserStory.fromMap(doc.data(), doc.id);
+
+            print("Checking story ${story.id} - userId: ${story.userId}, seenBy: ${story.seenBy}");
+
+            if (story.userId != currentUserId) {
+              if (!story.isSeenBy(currentUserId)) {
+                print("User $currentUserId has not seen story ${story.id} yet.");
+              } else {
+                print("Story ${story.id} already seen by $currentUserId");
+              }
+            } else {
+              print("Story ${story.id} belongs to the current user, not marking as seen");
+            }
+          } catch (e) {
+            print("Error processing story: $e");
+            emit(UpdateStoryErrorState(e.toString()));
+          }
+        }
+      },
+      onError: (error) {
+        print("Error in listenForNewStories: $error");
+        emit(UpdateStoryErrorState(error.toString()));
+      },
+    );
+  }
+
+  void markStoryAsSeen(String storyId, String currentUserId) {
+    FirebaseFirestore.instance.collection('stories').doc(storyId).update({
+      'seenBy': FieldValue.arrayUnion([currentUserId]),
+    }).then((_) {
+      print('Story $storyId marked as seen by $currentUserId');
+      emit(UpdateStorySuccessState());
+    }).catchError((error) {
+      print('Error updating story: $error');
+      emit(UpdateStoryErrorState(error.toString()));
+    });
+  }
 
 ///get stories seen
 Future<List<String>> getStorySeenBy(String storyId) async {
@@ -326,49 +315,6 @@ void deleteExpiredStoriesFromBackend() {
     }
   }
 
-  // void getStories() {
-  //   emit(GetStoriesLoadingState());
-  //   deleteExpiredStoriesFromBackend();
-  //
-  //   try {
-  //     FirebaseFirestore.instance.collection('users').doc(currentUser?.userId).snapshots().listen((userDoc) {
-  //       List<String> mutedUsers = List<String>.from(userDoc.data()?['mutedUsers'] ?? []);
-  //
-  //       storiesRef
-  //           .orderBy('timeStamp', descending: true)
-  //           .snapshots()
-  //           .listen((snapshot) {
-  //         stories = snapshot.docs.map((doc) {
-  //           final timestampString = doc['timeStamp'] as String;
-  //           DateTime timeStampDateTime = DateTime.parse(timestampString);
-  //           return UserStory(
-  //             id: doc['id'] ?? '',
-  //             userId: doc['userId'] ?? '',
-  //             imgURL: doc['imgURL'] ?? '',
-  //             timeStamp: timeStampDateTime,
-  //             seenBy: List<String>.from(doc['seenBy'] ?? []),
-  //           );
-  //         }).toList();
-  //
-  //         stories.sort((a, b) {
-  //           bool isAMuted = mutedUsers.contains(a.userId);
-  //           bool isBMuted = mutedUsers.contains(b.userId);
-  //           if (isAMuted == isBMuted) {
-  //             return b.timeStamp.compareTo(a.timeStamp);
-  //           }
-  //           return isAMuted ? 1 : -1;
-  //         });
-  //
-  //         emit(GetStoriesSuccessState());
-  //         deleteExpiredStoriesFromBackend();
-  //       });
-  //     });
-  //   } catch (e) {
-  //     emit(GetStoriesErrorState(e.toString()));
-  //   }
-  // }
-
-  // Add this method to get favorite status
   bool isStoryFavorited(String storyId, String userId) {
     return _storyFavByMap[storyId]?.contains(userId) ?? false;
   }
@@ -392,6 +338,7 @@ void deleteExpiredStoriesFromBackend() {
         await storyRef.update({'favBy': favBy});
 
         _storyFavByMap[storyId] = favBy;
+        print("_storyFavByMap after update: $_storyFavByMap");
         emit(ToggleFavoriteSuccessState());
       } else {
         emit(ToggleFavoriteErrorState('Story not found'));
@@ -407,13 +354,12 @@ void deleteExpiredStoriesFromBackend() {
 
   // Modify the getStories method to include favBy
   void getStories() {
+    if (isClosed) return;
     emit(GetStoriesLoadingState());
     deleteExpiredStoriesFromBackend();
 
     try {
       FirebaseFirestore.instance.collection('users').doc(currentUser?.userId).snapshots().listen((userDoc) {
-        List<String> mutedUsers = List<String>.from(userDoc.data()?['mutedUsers'] ?? []);
-
         storiesRef
             .orderBy('timeStamp', descending: true)
             .snapshots()
@@ -433,21 +379,16 @@ void deleteExpiredStoriesFromBackend() {
             );
           }).toList();
 
-          stories.sort((a, b) {
-            bool isAMuted = mutedUsers.contains(a.userId);
-            bool isBMuted = mutedUsers.contains(b.userId);
-            if (isAMuted == isBMuted) {
-              return b.timeStamp.compareTo(a.timeStamp); // If mute status is the same, sort by time
-            }
-            return isAMuted ? 1 : -1; // Muted stories go last
-          });
 
-          emit(GetStoriesSuccessState());
+            emit(GetStoriesSuccessState());
+
+
           deleteExpiredStoriesFromBackend();
-            });
+        });
       });
     } catch (e) {
-      emit(GetStoriesErrorState(e.toString()));
+        emit(GetStoriesErrorState(e.toString()));
+
     }
   }
 
